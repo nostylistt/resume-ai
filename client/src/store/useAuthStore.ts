@@ -20,7 +20,7 @@ interface AuthState {
     checkAuth: () => Promise<void>;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://resume-ai-back.onrender.com/api';
 
 export const useAuthStore = create<AuthState>((set) => ({
     user: null,
