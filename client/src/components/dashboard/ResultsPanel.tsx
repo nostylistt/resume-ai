@@ -204,18 +204,18 @@ export const ResultsPanel = () => {
         <div className="structure-block">
           <h4 className="structure-block-title">Автоматичні зауваження</h4>
           <p className="structure-block-desc">Алгоритм шукає пропуски у хронології, часту зміну місць роботи та кліше</p>
-          <div className="text-issues">
-            <div className="text-issue-row">
-              <span className="text-issue-label">Пропуски у хронології досвіду</span>
-              <span className="tag tag-matched">Не виявлено</span>
+          <div className="structure-volumes">
+            <div className="structure-volume-row">
+              <span>Пропуски у хронології досвіду</span>
+              <span className="volume-pill volume-optimal">Не виявлено</span>
             </div>
-            <div className="text-issue-row">
-              <span className="text-issue-label">Часта зміна місць роботи</span>
-              <span className="tag tag-missing">Можливий ризик</span>
+            <div className="structure-volume-row">
+              <span>Часта зміна місць роботи</span>
+              <span className="volume-pill volume-long">Можливий ризик</span>
             </div>
-            <div className="text-issue-row">
-              <span className="text-issue-label">Шаблонні фрази та кліше</span>
-              <span className="tag tag-irrelevant">Помірно</span>
+            <div className="structure-volume-row">
+              <span>Шаблонні фрази та кліше</span>
+              <span className="volume-pill volume-short">Помірно</span>
             </div>
           </div>
         </div>
