@@ -90,7 +90,7 @@ export function LandingPage() {
               <div className="resume-header-section">
                 <div className="resume-avatar"></div>
                 <div className="resume-name-block">
-                  <div className="resume-name">Василь Липченко</div>
+                  <div className="resume-name">Василь Шевченко</div>
                   <div className="resume-title">Senior Frontend Developer</div>
                 </div>
               </div>
