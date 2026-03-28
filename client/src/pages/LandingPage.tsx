@@ -36,7 +36,7 @@ export function LandingPage() {
               visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
             }}
           >
-            Resume AI допомагає оцінити ваше резюме, знайти слабкі місця та покращити його під конкретну вакансію за допомогою штучного інтелекту.
+            Resume AI допомагає оцінити ваше резюме, знайти слабкі місця та покращити його під конкретну позицію на ринку за допомогою штучного інтелекту.
           </motion.p>
           <motion.div 
             className="hero-features"
@@ -46,7 +46,7 @@ export function LandingPage() {
             }}
           >
             {[
-              { icon: Target, text: "Аналіз під конкретну вакансію" },
+              { icon: Target, text: "Аналіз під конкретну посаду" },
               { icon: Zap, text: "Результати за секунди" },
               { icon: CheckCircle, text: "Зрозуміла оцінка і поради" }
             ].map((item, i) => (
@@ -90,7 +90,7 @@ export function LandingPage() {
               <div className="resume-header-section">
                 <div className="resume-avatar"></div>
                 <div className="resume-name-block">
-                  <div className="resume-name">Василь Липченко</div>
+                  <div className="resume-name">Василь Шевченко</div>
                   <div className="resume-title">Senior Frontend Developer</div>
                 </div>
               </div>
@@ -150,8 +150,8 @@ export function LandingPage() {
               desc: "Підтримуємо формати PDF та DOCX. Система автоматично розпізнає структуру вашого резюме."
             },{
               icon: FileText,
-              title: "Додайте опис вакансії",
-              desc: "Додайте текст вакансії, щоб система могла порівняти ваші навички з вимогами роботодавця."
+              title: "Оберіть позицію",
+              desc: "Оберіть назву посади, і система автоматично визначить актуальні вимоги на ринку."
             },{
               icon: Sparkles,
               title: "Отримайте AI-рекомендації",
