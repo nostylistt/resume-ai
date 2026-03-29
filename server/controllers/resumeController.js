@@ -1,5 +1,4 @@
 const multer = require('multer');
-const { PDFParse } = require('pdf-parse');
 const mammoth = require('mammoth');
 const { extractSections } = require('../services/sectionExtractor');
 
@@ -14,11 +13,14 @@ const uploadResume = async (req, res) => {
         let text = '';
         const { mimetype, buffer } = req.file;
 
+        console.time('PDF/DOCX Text Extraction');
         if (mimetype === 'application/pdf') {
-            const parser = new PDFParse({ data: buffer });
-            const pdfData = await parser.getText();
-            await parser.destroy();
-            text = pdfData.text;
+            const mupdf = await import('mupdf');
+            const doc = mupdf.Document.openDocument(new Uint8Array(buffer), mimetype);
+            for (let i = 0; i < doc.countPages(); i++) {
+                const page = doc.loadPage(i);
+                text += page.toStructuredText().asText() + '\n';
+            }
         } else if (
             mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
             mimetype === 'application/msword'
@@ -28,9 +30,12 @@ const uploadResume = async (req, res) => {
         } else {
             return res.status(400).json({ message: 'Непідтримуваний формат файлу. Використовуйте PDF або DOCX.' });
         }
+        console.timeEnd('PDF/DOCX Text Extraction');
 
         const trimmedText = text.trim();
+        console.time('LLM sectionExtractor (Total Processing)');
         const parsedResume = await extractSections(trimmedText);
+        console.timeEnd('LLM sectionExtractor (Total Processing)');
 
         return res.json({
             message: 'Файл успішно оброблено',
