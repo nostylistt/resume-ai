@@ -107,40 +107,47 @@ async function extractSections(rawText) {
     throw new Error('GEMINI_API_KEY is not configured');
   }
 
-  try {
-    const ai = new GoogleGenAI({ apiKey });
+  const ai = new GoogleGenAI({ apiKey });
+  const prompt = `Extract all data from the following resume text into JSON.\n\nResume text:\n---\n${rawText}\n---`;
+  const MAX_RETRIES = 3;
+  let lastError = null;
 
-    const prompt = `Extract all data from the following resume text into JSON.\n\nResume text:\n---\n${rawText}\n---`;
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      console.time(`Gemini API call (attempt ${attempt})`);
+      const result = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: {
+          systemInstruction: SYSTEM_PROMPT,
+          thinkingConfig: { thinkingBudget: 0 },  // Вимикаємо thinking для швидкості
+          temperature: 0.1,
+          maxOutputTokens: 16384,
+          responseMimeType: 'application/json',
+        }
+      });
+      console.timeEnd(`Gemini API call (attempt ${attempt})`);
+      const responseText = result.text;
+      const parsed = JSON.parse(responseText);
+      return normalizeResult(parsed);
 
-    console.time('Gemini API call');
-    const result = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-      config: {
-        systemInstruction: SYSTEM_PROMPT,
-        thinkingConfig: { thinkingBudget: 0 },  // Вимикаємо thinking для швидкості
-        temperature: 0.1,
-        maxOutputTokens: 16384,
-        responseMimeType: 'application/json',
+    } catch (error) {
+      console.error(`Помилка Gemini API (спроба ${attempt}):`, error.message);
+      lastError = error;
+
+      if (error instanceof SyntaxError) {
+        console.error('Не вдалося розпарсити JSON відповідь від LLM');
       }
-    });
-    console.timeEnd('Gemini API call');
 
-    const responseText = result.text;
+      if (attempt === MAX_RETRIES) {
+        break;
+      }
 
-    const parsed = JSON.parse(responseText);
-
-    return normalizeResult(parsed);
-
-  } catch (error) {
-    console.error('Помилка Gemini API:', error.message);
-
-    if (error instanceof SyntaxError) {
-      console.error('Не вдалося розпарсити JSON відповідь від LLM');
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
-
-    throw error;
   }
+
+  throw lastError;
 }
 
 // Нормалізація та валідація
