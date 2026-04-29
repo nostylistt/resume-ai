@@ -54,6 +54,7 @@ const ResumeSchema = z.object({
     technologies: z.array(z.string()),
     url: z.string().nullable()
   })),
+  searchKeywords: z.array(z.string()).describe("3-5 search keywords in English for job search by this position, e.g. ['frontend', 'front-end developer', 'react developer']"),
   interests: z.array(z.string()),
   references: z.array(z.object({
     name: z.string(),
@@ -96,7 +97,7 @@ async function extractSections(rawText) {
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      console.time(`OpenAI API call (attempt ${attempt})`);
+      console.time(`[Resume Extraction LLM (attempt ${attempt})]`);
 
       const response = await openai.chat.completions.parse({
         model: 'gpt-4.1-mini',
@@ -104,17 +105,16 @@ async function extractSections(rawText) {
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: prompt }
         ],
-        response_format: zodResponseFormat(ResumeSchema, 'resume'),
-        temperature: 0.1
+        response_format: zodResponseFormat(ResumeSchema, 'resume')
       });
 
-      console.timeEnd(`OpenAI API call (attempt ${attempt})`);
+      console.timeEnd(`[Resume Extraction LLM (attempt ${attempt})]`);
 
       const parsed = response.choices[0].message.parsed;
       return normalizeResult(parsed);
 
     } catch (error) {
-      console.error(`Помилка OpenAI API (спроба ${attempt}):`, error.message);
+      console.error(`[Resume Extraction] LLM error (attempt ${attempt}):`, error.message);
       lastError = error;
 
       if (attempt === MAX_RETRIES) {
@@ -182,6 +182,7 @@ function normalizeResult(data) {
       technologies: Array.isArray(proj.technologies) ? proj.technologies : [],
       url: proj.url || null,
     })) : [],
+    searchKeywords: Array.isArray(data.searchKeywords) ? data.searchKeywords : [],
     interests: Array.isArray(data.interests) ? data.interests : [],
     references: Array.isArray(data.references) ? data.references.map(ref => ({
       name: ref.name || '',
