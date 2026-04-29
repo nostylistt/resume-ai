@@ -1,97 +1,79 @@
-const { GoogleGenAI } = require('@google/genai');
+const OpenAI = require('openai');
+const { z } = require('zod');
+const { zodResponseFormat } = require('openai/helpers/zod');
 
-// JSON-схема
-
-const RESUME_SCHEMA = `{
-  "position":"string | null - бажана посада, якщо зазначено",
-  "contact": {
-    "fullName": "string | null",
-    "email": "string | null",
-    "phone": "string | null",
-    "location": "string | null",
-    "linkedin": "string | null",
-    "github": "string | null",
-    "website": "string | null",
-    "telegram": "string | null"
-  },
-  "summary": "string | null — короткий опис кандидата (секція 'Про себе' / 'Summary')",
-  "experience": [
-    {
-      "company": "string",
-      "position": "string",
-      "startDate": "string (формат: 'YYYY-MM' або 'YYYY')",
-      "endDate": "string | null (null якщо поточна позиція)",
-      "current": "boolean",
-      "location": "string | null",
-      "description": "string | null — загальний опис ролі",
-      "achievements": ["string — конкретні досягнення та результати"]
-    }
-  ],
-  "education": [
-    {
-      "institution": "string",
-      "degree": "string | null (бакалавр, магістр, PhD тощо)",
-      "field": "string | null (спеціальність)",
-      "startDate": "string | null (формат: 'YYYY-MM' або 'YYYY')",
-      "endDate": "string | null (формат: 'YYYY-MM' або 'YYYY')",
-      "description": "string | null"
-    }
-  ],
-  "skills": {
-    "technical": ["string — мови програмування, фреймворки, бази даних тощо"],
-    "soft": ["string — комунікація, лідерство тощо"],
-    "tools": ["string — Git, Jira, Figma тощо"]
-  },
-  "languages": [
-    {
-      "language": "string",
-      "level": "string (Native/Fluent/Advanced/Intermediate/Basic або A1-C2)"
-    }
-  ],
-  "certifications": [
-    {
-      "name": "string",
-      "issuer": "string | null",
-      "date": "string | null (формат: 'YYYY-MM' або 'YYYY')",
-      "url": "string | null"
-    }
-  ],
-  "projects": [
-    {
-      "name": "string",
-      "description": "string | null",
-      "technologies": ["string"],
-      "url": "string | null"
-    }
-  ],
-  "interests": ["string"],
-  "references": [
-    {
-      "name": "string",
-      "position": "string | null",
-      "contact": "string | null"
-    }
-  ]
-}
-`;
+const ResumeSchema = z.object({
+  position: z.string().nullable().describe("бажана посада, якщо зазначено"),
+  contact: z.object({
+    fullName: z.string().nullable(),
+    email: z.string().nullable(),
+    phone: z.string().nullable(),
+    location: z.string().nullable(),
+    linkedin: z.string().nullable(),
+    github: z.string().nullable(),
+    website: z.string().nullable(),
+    telegram: z.string().nullable(),
+  }),
+  summary: z.string().nullable().describe("короткий опис кандидата (секція 'Про себе' / 'Summary')"),
+  experience: z.array(z.object({
+    company: z.string(),
+    position: z.string(),
+    startDate: z.string().nullable().describe("формат: 'YYYY-MM' або 'YYYY'"),
+    endDate: z.string().nullable().describe("null якщо поточна позиція"),
+    current: z.boolean(),
+    location: z.string().nullable(),
+    description: z.string().nullable().describe("загальний опис ролі"),
+    achievements: z.array(z.string()).describe("конкретні досягнення та результати")
+  })),
+  education: z.array(z.object({
+    institution: z.string(),
+    degree: z.string().nullable().describe("бакалавр, магістр, PhD тощо"),
+    field: z.string().nullable().describe("спеціальність"),
+    startDate: z.string().nullable().describe("формат: 'YYYY-MM' або 'YYYY'"),
+    endDate: z.string().nullable().describe("формат: 'YYYY-MM' або 'YYYY'"),
+    description: z.string().nullable()
+  })),
+  skills: z.object({
+    technical: z.array(z.string()).describe("мови програмування, фреймворки, бази даних тощо"),
+    soft: z.array(z.string()).describe("комунікація, лідерство тощо"),
+    tools: z.array(z.string()).describe("Git, Jira, Figma тощо")
+  }),
+  languages: z.array(z.object({
+    language: z.string(),
+    level: z.string().describe("Native/Fluent/Advanced/Intermediate/Basic або A1-C2")
+  })),
+  certifications: z.array(z.object({
+    name: z.string(),
+    issuer: z.string().nullable(),
+    date: z.string().nullable().describe("формат: 'YYYY-MM' або 'YYYY'"),
+    url: z.string().nullable()
+  })),
+  projects: z.array(z.object({
+    name: z.string(),
+    description: z.string().nullable(),
+    technologies: z.array(z.string()),
+    url: z.string().nullable()
+  })),
+  interests: z.array(z.string()),
+  references: z.array(z.object({
+    name: z.string(),
+    position: z.string().nullable(),
+    contact: z.string().nullable()
+  }))
+});
 
 // Системний промпт
-
-const SYSTEM_PROMPT = `You are a resume data extraction expert. Extract structured data from resume text and return valid JSON.
+const SYSTEM_PROMPT = `You are a resume data extraction expert. Extract structured data from resume text.
 
 RULES:
-1. Return ONLY valid JSON matching the schema.
-2. Missing sections = null or [].
-3. Split skills into technical, soft, tools.
-4. Dates → "YYYY-MM" or "YYYY". Unknown dates → null. Current job → endDate=null, current=true.
-5. Do NOT invent data not present in the text.
-6. Do NOT truncate or modify text from the resume. Data accuracy is critical.
-
-JSON schema:
-${RESUME_SCHEMA}`;
+1. Missing sections = null or [].
+2. Split skills into technical, soft, tools.
+3. Dates → "YYYY-MM" or "YYYY". Unknown dates → null. Current job → endDate=null, current=true.
+4. Do NOT invent data not present in the text.
+5. Do NOT truncate or modify text from the resume. Data accuracy is critical.`;
 
 /**
- * Витягує структуровані дані з сирого тексту резюме через Gemini API.
+ * Витягує структуровані дані з сирого тексту резюме через OpenAI API (Structured Outputs).
  *
  * @param {string} rawText — сирий текст з pdf / mammoth
  * @returns {Promise<Object>} — структуровані дані резюме
@@ -101,43 +83,39 @@ async function extractSections(rawText) {
     return createEmptyResult();
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    console.error('GEMINI_API_KEY не знайдено в .env');
-    throw new Error('GEMINI_API_KEY is not configured');
+    console.error('OPENAI_API_KEY не знайдено в .env');
+    throw new Error('OPENAI_API_KEY is not configured');
   }
 
-  const ai = new GoogleGenAI({ apiKey });
-  const prompt = `Extract all data from the following resume text into JSON.\n\nResume text:\n---\n${rawText}\n---`;
-  const MAX_RETRIES = 3;
+  const openai = new OpenAI({ apiKey });
+  const prompt = `Extract all data from the following resume text:\n\nResume text:\n---\n${rawText}\n---`;
+  const MAX_RETRIES = 10;
   let lastError = null;
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      console.time(`Gemini API call (attempt ${attempt})`);
-      const result = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-        config: {
-          systemInstruction: SYSTEM_PROMPT,
-          thinkingConfig: { thinkingBudget: 0 },  // Вимикаємо thinking для швидкості
-          temperature: 0.1,
-          maxOutputTokens: 16384,
-          responseMimeType: 'application/json',
-        }
+      console.time(`OpenAI API call (attempt ${attempt})`);
+
+      const response = await openai.chat.completions.parse({
+        model: 'gpt-4.1-mini',
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: prompt }
+        ],
+        response_format: zodResponseFormat(ResumeSchema, 'resume'),
+        temperature: 0.1
       });
-      console.timeEnd(`Gemini API call (attempt ${attempt})`);
-      const responseText = result.text;
-      const parsed = JSON.parse(responseText);
+
+      console.timeEnd(`OpenAI API call (attempt ${attempt})`);
+
+      const parsed = response.choices[0].message.parsed;
       return normalizeResult(parsed);
 
     } catch (error) {
-      console.error(`Помилка Gemini API (спроба ${attempt}):`, error.message);
+      console.error(`Помилка OpenAI API (спроба ${attempt}):`, error.message);
       lastError = error;
-
-      if (error instanceof SyntaxError) {
-        console.error('Не вдалося розпарсити JSON відповідь від LLM');
-      }
 
       if (attempt === MAX_RETRIES) {
         break;
@@ -151,7 +129,6 @@ async function extractSections(rawText) {
 }
 
 // Нормалізація та валідація
-
 function normalizeResult(data) {
   return {
     position: data.position || null,
