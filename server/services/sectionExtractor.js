@@ -3,6 +3,7 @@ const { GoogleGenAI } = require('@google/genai');
 // JSON-схема
 
 const RESUME_SCHEMA = `{
+  "position":"string | null - бажана посада, якщо зазначено",
   "contact": {
     "fullName": "string | null",
     "email": "string | null",
@@ -31,8 +32,8 @@ const RESUME_SCHEMA = `{
       "institution": "string",
       "degree": "string | null (бакалавр, магістр, PhD тощо)",
       "field": "string | null (спеціальність)",
-      "startDate": "string | null",
-      "endDate": "string | null",
+      "startDate": "string | null (формат: 'YYYY-MM' або 'YYYY')",
+      "endDate": "string | null (формат: 'YYYY-MM' або 'YYYY')",
       "description": "string | null"
     }
   ],
@@ -51,7 +52,7 @@ const RESUME_SCHEMA = `{
     {
       "name": "string",
       "issuer": "string | null",
-      "date": "string | null",
+      "date": "string | null (формат: 'YYYY-MM' або 'YYYY')",
       "url": "string | null"
     }
   ],
@@ -146,6 +147,7 @@ async function extractSections(rawText) {
 
 function normalizeResult(data) {
   return {
+    position: data.position || null,
     contact: {
       fullName: data.contact?.fullName || null,
       email: data.contact?.email || null,
