@@ -4,6 +4,7 @@ import { LogOut, User, History } from "lucide-react";
 import { InputPanel } from "../components/dashboard/InputPanel";
 import { ResultsPanel } from "../components/dashboard/ResultsPanel";
 import { InsightsPanel } from "../components/dashboard/InsightsPanel";
+import { Logo } from "../components/Logo";
 import "../App.css";
 
 export function DashboardPage() {
@@ -13,7 +14,7 @@ export function DashboardPage() {
     <div className="dashboard-container">
       <header className="dashboard-header">
         <div className="dashboard-brand">
-          <div className="logo">R | Resume AI</div>
+          <Logo />
         </div>
         
         <div className="dashboard-nav">

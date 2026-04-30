@@ -1,10 +1,35 @@
 import { Button } from "../components/ui/button";
 import { motion } from "framer-motion";
-import { Eye, Upload, FileText, Sparkles, Target, BarChart3, LayoutList, BookOpen, Lightbulb, Zap, CheckCircle } from "lucide-react";
+import { Eye, Upload, Search, Sparkles, Target, BarChart3, LayoutList, BookOpen, Lightbulb, Zap, CheckCircle, Globe } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useState } from "react";
 import { Header } from "../components/Header";
 
 export function LandingPage() {
+  const [activeFeature, setActiveFeature] = useState(0);
+
+  const featuresList = [{
+    icon: Target,
+    title: "Оцінка відповідності",
+    desc: "Наскільки ваше резюме відповідає тому, що зараз шукають на ринку - з конкретним балом."
+  },{
+    icon: BarChart3,
+    title: "Порівняння навичок",
+    desc: "Бачите, які ваші технології збігаються з вимогами, яких не вистачає, і що додати в першу чергу."
+  },{
+    icon: LayoutList,
+    title: "Аудит структури",
+    desc: "Чи є всі потрібні розділи, чи логічно подана інформація, і що можна покращити у форматуванні."
+  },{
+    icon: BookOpen,
+    title: "Якість формулювань",
+    desc: "Перевіряємо на кліше, пасивні конструкції та нечіткі формулювання, які знижують шанси на відгук."
+  },{
+    icon: Lightbulb,
+    title: "Конкретні поради",
+    desc: "Не загальні фрази, а точні рекомендації - що переписати, що додати, що прибрати з вашого резюме."
+  }];
+
   return (
     <div className="landing-container">
       <Header />
@@ -27,7 +52,7 @@ export function LandingPage() {
               visible: { opacity: 1, y: 0, transition: { duration: 0.6 } }
             }}
           >
-            AI-аналіз резюме <span className="text-blue">для кращих шансів</span> на оффер
+            Покажемо, <span className="text-blue">чого не вистачає</span> вашому резюме до ідеального офферу
           </motion.h1>
           <motion.p 
             className="hero-desc"
@@ -36,7 +61,7 @@ export function LandingPage() {
               visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
             }}
           >
-            Resume AI допомагає оцінити ваше резюме, знайти слабкі місця та покращити його під конкретну позицію на ринку за допомогою штучного інтелекту.
+            Порівнюємо ваше резюме з реальними вимогами роботодавців в Україні та показуємо, що підсилити перед відгуком.
           </motion.p>
           <motion.div 
             className="hero-features"
@@ -46,9 +71,9 @@ export function LandingPage() {
             }}
           >
             {[
-              { icon: Target, text: "Аналіз під конкретну посаду" },
-              { icon: Zap, text: "Результати за секунди" },
-              { icon: CheckCircle, text: "Зрозуміла оцінка і поради" }
+              { icon: Globe, text: "Реальні вимоги з DOU, Work.ua, Robota.ua" },
+              { icon: Zap, text: "Повний звіт за хвилину" },
+              { icon: CheckCircle, text: "Жодних ручних налаштувань" }
             ].map((item, i) => (
               <motion.div 
                 key={i}
@@ -71,7 +96,7 @@ export function LandingPage() {
             }}
           >
             <Link to="/register">
-              <Button className="btn btn-primary">Почати аналіз резюме</Button>
+              <Button className="btn btn-primary">Перевірити моє резюме</Button>
             </Link>
             <a href="/#example">
                 <Button variant="outline" className="btn btn-outline"><Eye size={16} /> Подивитись приклад</Button>
@@ -141,21 +166,21 @@ export function LandingPage() {
       <section id="how" className="section relative">
         <div className="blur-shape blur-right" />
         <div className="container relative">
-          <h2 className="section-title">Як це працює</h2>
-          <p className="section-subtitle">Три прості кроки до ідеального резюме</p>
+          <h2 className="section-title">Від завантаження до результату — одна хвилина</h2>
+          <p className="section-subtitle">Вам потрібно зробити лише одну дію. Все інше ми беремо на себе.</p>
           <div className="how-grid">
             {[{
               icon: Upload,
               title: "Завантажте резюме",
-              desc: "Підтримуємо формати PDF та DOCX. Система автоматично розпізнає структуру вашого резюме."
+              desc: "PDF або DOCX - більше нічого не потрібно. Ми самі визначимо вашу спеціалізацію та ключові навички."
             },{
-              icon: FileText,
-              title: "Оберіть позицію",
-              desc: "Оберіть назву посади, і система автоматично визначить актуальні вимоги на ринку."
+              icon: Search,
+              title: "Ми збираємо вимоги ринку",
+              desc: "Система аналізує свіжі вакансії на DOU, Work.ua та Robota.ua і формує зріз того, що зараз шукають роботодавці."
             },{
               icon: Sparkles,
-              title: "Отримайте AI-рекомендації",
-              desc: "Миттєвий звіт зі скорингом, аналізом навичок та конкретними порадами щодо покращення вашого резюме."
+              title: "Ви отримуєте готовий звіт",
+              desc: "Які ваші навички збігаються з ринком, чого бракує, і що варто підсилити - конкретно та без води."
             }].map((step, i) => (
               <motion.div
                 key={i}
@@ -180,41 +205,37 @@ export function LandingPage() {
       <section id="features" className="section relative">
         <div className="blur-shape blur-left" />
         <div className="container relative">
-          <h2 className="section-title">Що ви отримаєте</h2>
-          <div className="features-grid">
-            {[{
-              icon: Target,
-              title: "Загальний бал відповідності",
-              desc: "Комплексна оцінка резюме від 0 до 100 на основі багатьох факторів успіху."
-            },{
-              icon: BarChart3,
-              title: "Аналіз навичок",
-              desc: "Детальний розбір: які навички збігаються, яких не вистачає, а які є зайвими."
-            },{
-              icon: LayoutList,
-              title: "Перевірка структури",
-              desc: "Аналіз розділів, порядку подачі інформації та логічної зв'язності документу."
-            },{
-              icon: BookOpen,
-              title: "Читабельність тексту",
-              desc: "Перевірка на використання активної мови, довжини речень та зрозумілість формулювань."
-            },{
-              icon: Lightbulb,
-              title: "AI-рекомендації",
-              desc: "Персоналізовані поради від штучного інтелекту для підвищення шансів на інтерв'ю."
-            }].map((feature, i) => (
-              <motion.div
-                key={i}
-                className="feature-item"
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
-                viewport={{ once: true }}
-              >
-                <feature.icon size={28} className="feature-icon" />
-                <div className="feature-title">{feature.title}</div>
-                <p className="feature-desc">{feature.desc}</p>
-              </motion.div>
+          <h2 className="section-title">Що входить в аналіз</h2>
+          <p className="section-subtitle">Натисніть, щоб побачити кожен етап в дії</p>
+
+          <div className="acc-list">
+            {featuresList.map((feature, i) => (
+              <div key={i} className={`acc-item ${activeFeature === i ? "open" : ""}`}>
+                <button className="acc-header" onClick={() => setActiveFeature(activeFeature === i ? -1 : i)}>
+                  <div className="acc-left">
+                    <div className="acc-icon">
+                      <feature.icon size={20} />
+                    </div>
+                    <span className="acc-title">{feature.title}</span>
+                  </div>
+                  <span className="acc-chevron">
+                    {activeFeature === i ? "−" : "+"}
+                  </span>
+                </button>
+                {activeFeature === i && (
+                  <motion.div
+                    className="acc-body"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
+                  >
+                    <div className="acc-content">
+                      <p className="acc-desc">{feature.desc}</p>
+                    </div>
+                  </motion.div>
+                )}
+              </div>
             ))}
           </div>
         </div>
@@ -222,109 +243,53 @@ export function LandingPage() {
 
       <section id="example" className="section relative">
         <div className="container">
-          <h2 className="section-title">Приклад AI-покращення</h2>
-          <p className="section-subtitle">Як ми допомагаємо зробити ваше резюме більш професійним</p>
+          <h2 className="section-title">Різниця, яку помітить рекрутер</h2>
+          <p className="section-subtitle">Одне й те саме досягнення — але подане так, що його неможливо проігнорувати</p>
           
-          <div className="example-comparison">
+          <div className="ex-comparison">
             <motion.div
-              className="example-card example-before"
+              className="ex-card ex-before"
               initial={{ opacity: 0, x: -30 }}
               whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6 }}
+              transition={{ duration: 0.5 }}
               viewport={{ once: true }}
             >
-              <div className="example-label">BEFORE</div>
-              <p className="example-text">
+              <div className="ex-label">
+                <Eye size={14} />
+                BEFORE
+              </div>
+              <p className="ex-quote">
                 "Відповідав за продажі в регіоні та спілкування з клієнтами. Робив звіти кожного місяця."
               </p>
+              <div className="ex-verdict negative">Нечіткий опис без конкретики</div>
             </motion.div>
             
             <motion.div
-              className="example-arrow"
+              className="ex-arrow-wrap"
               initial={{ opacity: 0, scale: 0 }}
               whileInView={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.4, delay: 0.3 }}
               viewport={{ once: true }}
-            >→</motion.div>
+            >
+              <Sparkles size={24} />
+            </motion.div>
             
             <motion.div
-              className="example-card example-after"
+              className="ex-card ex-after"
               initial={{ opacity: 0, x: 30 }}
               whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
               viewport={{ once: true }}
             >
-              <div className="example-label">AFTER</div>
-              <div className="example-checkmark">✓</div>
-              <p className="example-text">
-                "Збільшив обсяг продажів у регіоні на 25% за 6 місяців шляхом залучення 15 нових ключових клієнтів. Автоматизував щомісячну звітність."
+              <div className="ex-label">
+                <CheckCircle size={14} />
+                AFTER
+              </div>
+              <p className="ex-quote">
+                "Збільшив обсяг продажів у регіоні на <strong>25%</strong> за 6 місяців шляхом залучення <strong>15 нових</strong> ключових клієнтів. Автоматизував щомісячну звітність."
               </p>
+              <div className="ex-verdict positive">Конкретні цифри та результати</div>
             </motion.div>
-          </div>
-          
-          <div className="example-note">
-            Покращено читабельність та вплив формулювань
-          </div>
-        </div>
-      </section>
-
-      <section id="pricing" className="section relative">
-        <div className="blur-shape blur-center-bottom" />
-        <div className="container relative">
-          <h2 className="section-title">Прості та прозорі ціни</h2>
-          <p className="section-subtitle">Оберіть план, що відповідає вашим потребам</p>
-          <div className="pricing-grid">
-            {[{
-              plan: "Free",
-              subtitle: "Базовий аналіз резюме",
-              price: "$0",
-              period: "/ міс",
-              features: ["1 аналіз на місяць", "Базовий скоринг", "Перевірка структури"],
-              buttonText: "Почати безкоштовно"
-            },{
-              plan: "Pro",
-              subtitle: "Для активного пошуку",
-              price: "$9",
-              period: "/ міс",
-              highlight: true,
-              popular: true,
-              features: ["15 аналізів на місяць", "Повний AI-аналіз", "Історія версій", "Детальні рекомендації"],
-              buttonText: "Обрати Pro"
-            },{
-              plan: "Premium",
-              subtitle: "Максимальні можливості",
-              price: "$19",
-              period: "/ міс",
-              features: ["Необмежені аналізи", "Експорт PDF звітів", "Пріоритетна підтримка", "Всі Pro функції"],
-              buttonText: "Обрати Premium"
-            }].map((p, i) => (
-              <motion.div
-                key={i}
-                className={`pricing-card ${p.highlight ? "pricing-card-highlight" : ""}`}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: i * 0.15 }}
-                viewport={{ once: true }}
-              >
-                <div className="pricing-header">
-                  <div className="pricing-plan-row">
-                    <div className="pricing-plan-name">{p.plan}</div>
-                    {p.popular && <span className="popular-badge">POPULAR</span>}
-                  </div>
-                  <div className="pricing-subtitle">{p.subtitle}</div>
-                </div>
-                <div className="pricing-price">
-                  <span className="price-value">{p.price}</span>
-                  <span className="price-period">{p.period}</span>
-                </div>
-                <ul className="pricing-features">
-                  {p.features.map((f, idx) => (
-                    <li key={idx}>✓ {f}</li>
-                  ))}
-                </ul>
-                <Button className={p.highlight ? "btn btn-primary pricing-btn" : "btn btn-outline pricing-btn"}>{p.buttonText}</Button>
-              </motion.div>
-            ))}
           </div>
         </div>
       </section>
@@ -338,8 +303,23 @@ export function LandingPage() {
             transition={{ duration: 0.6 }}
             viewport={{ once: true }}
           >
-            <h2 className="cta-title">Готові покращити своє резюме?</h2>
-            <p className="cta-subtitle">Почніть безкоштовно та отримайте результат вже сьогодні.</p>
+            <div className="cta-beta-badge">OPEN BETA</div>
+            <h2 className="cta-title">Дізнайтесь, чого не вистачає вашому резюме</h2>
+            <p className="cta-subtitle">Завантажте файл - і за хвилину отримайте повний звіт з порівнянням з ринком. Зараз усі функції доступні безкоштовно.</p>
+            
+            <div className="cta-perks">
+              {[
+                "Необмежена кількість аналізів",
+                "Дані з DOU, Work.ua, Robota.ua",
+                "Персональні рекомендації"
+              ].map((f, i) => (
+                <div key={i} className="cta-perk-item">
+                  <CheckCircle size={16} className="text-blue" />
+                  <span>{f}</span>
+                </div>
+              ))}
+            </div>
+
             <div className="cta-actions">
               <Link to="/register">
                 <Button className="btn btn-primary">Спробувати зараз</Button>
@@ -348,27 +328,76 @@ export function LandingPage() {
                 <Button variant="outline" className="btn btn-outline">Увійти</Button>
               </Link>
             </div>
-            <p className="cta-note">Без кредитної картки</p>
+            <p className="cta-note">Безкоштовно на час бета-тесту · без зобов'язань</p>
           </motion.div>
         </div>
       </section>
 
       <footer className="footer">
         <div className="container footer-content">
-          <div className="footer-copyright">© 2025 Resume AI</div>
+          <div className="footer-copyright">© 2025 Resumatch</div>
           <nav className="footer-nav">
             <a href="#how">Як це працює</a>
-            <a href="#features">Що ви отримаєте</a>
+            <a href="#features">Що входить в аналіз</a>
             <a href="#example">Приклад</a>
-            <a href="#pricing">Ціни</a>
           </nav>
-          <div className="footer-lang">
-            <span className="lang-active">UA</span>
-            <span className="lang-divider">|</span>
-            <a href="#" className="lang-link">EN</a>
-          </div>
         </div>
       </footer>
+    </div>
+  );
+}
+
+// Subcomponent for rendering the interactive visual
+function FeatureVisual({ active }: { active: number }) {
+  if (active === 0) {
+    return (
+      <div className="fv-score">
+        <div className="fv-score-circle">
+          <span className="fv-score-num">92</span>
+          <span className="fv-score-max">/ 100</span>
+        </div>
+        <div className="fv-score-text">Відмінне попадання</div>
+      </div>
+    );
+  }
+  if (active === 1) {
+    return (
+      <div className="fv-skills">
+        <div className="fv-skills-row"><span className="fv-tag match">React</span><span className="fv-tag match">TypeScript</span></div>
+        <div className="fv-skills-row"><span className="fv-tag match">Node.js</span><span className="fv-tag missing">GraphQL</span></div>
+        <div className="fv-skills-row"><span className="fv-tag missing">Docker</span><span className="fv-tag match">Git</span></div>
+      </div>
+    );
+  }
+  if (active === 2) {
+    return (
+      <div className="fv-structure">
+        <div className="fv-struct-item"><CheckCircle size={16} className="text-green-500" /> Контакти</div>
+        <div className="fv-struct-item"><CheckCircle size={16} className="text-green-500" /> Досвід роботи</div>
+        <div className="fv-struct-item missing"><Zap size={16} className="text-yellow-500" /> Бракує "Про себе"</div>
+        <div className="fv-struct-item"><CheckCircle size={16} className="text-green-500" /> Навички</div>
+      </div>
+    );
+  }
+  if (active === 3) {
+    return (
+      <div className="fv-text">
+        <div className="fv-text-line">Брав участь у розробці архітектури</div>
+        <div className="fv-text-line error">Відповідальний за написання коду <span className="fv-tooltip">Кліше</span></div>
+        <div className="fv-text-line correction">→ Розробив мікросервіс, який пришвидшив роботу на 40%</div>
+      </div>
+    );
+  }
+  return (
+    <div className="fv-tips">
+      <div className="fv-tip-card">
+        <Lightbulb size={24} className="text-blue" />
+        <div>Додайте метрики до останнього місця роботи</div>
+      </div>
+      <div className="fv-tip-card">
+        <Target size={24} className="text-blue" />
+        <div>Перемістіть навички вище досвіду</div>
+      </div>
     </div>
   );
 }

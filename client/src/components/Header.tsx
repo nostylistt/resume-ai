@@ -2,6 +2,7 @@ import { Button } from "./ui/button";
 import { Link } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
+import { Logo } from "./Logo";
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -10,13 +11,12 @@ export function Header() {
     <>
       <header className="header">
         <div className="container header-content">
-          <Link to="/" className="logo">R | Resume AI</Link>
+          <Logo />
           
           <nav className="nav-links">
             <a href="/#how" className="nav-link">Як це працює</a>
-            <a href="/#features" className="nav-link">Що ви отримаєте</a>
+            <a href="/#features" className="nav-link">Що входить в аналіз</a>
             <a href="/#example" className="nav-link">Приклад</a>
-            <a href="/#pricing" className="nav-link">Ціни</a>
           </nav>
           
           <div className="header-actions">

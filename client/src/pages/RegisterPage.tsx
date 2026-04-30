@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff, User, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuthStore } from "../store/useAuthStore";
+import { Logo } from "../components/Logo";
 
 export function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -59,7 +60,7 @@ export function RegisterPage() {
     <div className="landing-container auth-page">
       <header className="header">
         <div className="container header-content">
-          <Link to="/" className="logo">R | Resume AI</Link>
+          <Logo />
           <div className="header-actions">
             <Link to="/login">
               <Button variant="ghost" className="btn btn-ghost">Увійти</Button>

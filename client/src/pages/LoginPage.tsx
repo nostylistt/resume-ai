@@ -4,6 +4,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuthStore } from "../store/useAuthStore";
+import { Logo } from "../components/Logo";
 
 export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -43,7 +44,7 @@ export function LoginPage() {
     <div className="landing-container auth-page">
       <header className="header">
         <div className="container header-content">
-          <Link to="/" className="logo">R | Resume AI</Link>
+          <Logo />
           <div className="header-actions">
             <Link to="/register">
               <Button className="btn btn-primary">Зареєструватися</Button>

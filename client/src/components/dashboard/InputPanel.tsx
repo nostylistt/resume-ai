@@ -1,4 +1,4 @@
-import { UploadCloud, ChevronDown, Sparkles } from "lucide-react";
+import { UploadCloud, Sparkles, Globe } from "lucide-react";
 import "../../App.css";
 
 export const InputPanel = () => {
@@ -14,17 +14,9 @@ export const InputPanel = () => {
         <p className="upload-desc">PDF, DOCX до 10MB</p>
       </div>
 
-      <div className="job-input-section">
-        <div className="job-input-header">
-          <h3 className="job-input-title">Введіть Опис Вакансії</h3>
-          <button className="job-select-link">
-            Оберіть зі збережених <ChevronDown size={12} />
-          </button>
-        </div>
-        <textarea
-          className="job-textarea custom-scrollbar"
-          placeholder="Вставте текст вакансії сюди для найкращого аналізу відповідності..."
-        />
+      <div className="auto-detect-info">
+        <Globe size={16} className="text-blue" />
+        <span>Позицію та вимоги ринку визначимо автоматично з DOU, Work.ua та Robota.ua</span>
       </div>
 
       <button className="analyze-btn">
