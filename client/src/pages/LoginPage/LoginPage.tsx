@@ -1,10 +1,10 @@
-import { Button } from "../components/ui/button";
+import { Button } from "../../components/ui/button";
 import { motion } from "framer-motion";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { useAuthStore } from "../store/useAuthStore";
-import { Logo } from "../components/Logo";
+import { useAuthStore } from "../../store/useAuthStore";
+import { Logo } from "../../components/Logo";
 
 export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -49,6 +49,8 @@ export function LoginPage() {
             <Link to="/register">
               <Button className="btn btn-primary">Зареєструватися</Button>
             </Link>
+          </div>
+          <div className="header-mobile-right">
           </div>
         </div>
       </header>

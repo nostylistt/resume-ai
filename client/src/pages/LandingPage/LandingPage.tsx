@@ -1,10 +1,11 @@
-import { Button } from "../components/ui/button";
+import { Button } from "../../components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, Upload, Search, Sparkles, Target, BarChart3, LayoutList, BookOpen, Lightbulb, Zap, CheckCircle, Globe } from "lucide-react";
+import { Eye, Upload, UploadCloud, Search, Sparkles, Target, BarChart3, LayoutList, BookOpen, Lightbulb, Zap, CheckCircle, Globe } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
-import { Header } from "../components/Header";
-import { Logo } from "../components/Logo";
+import { Header } from "../../components/Header";
+import { Logo } from "../../components/Logo";
+import "./LandingPage.css";
 
 export function LandingPage() {
   const [activeFeature, setActiveFeature] = useState(0);
@@ -53,7 +54,7 @@ export function LandingPage() {
               visible: { opacity: 1, y: 0, transition: { duration: 0.6 } }
             }}
           >
-            Покажемо, <span className="text-blue">чого не вистачає</span> вашому резюме до ідеального офферу
+            Покажемо, <span className="hero-highlight">чого не вистачає</span> вашому резюме до ідеального офферу
           </motion.h1>
           <motion.p 
             className="hero-desc"
@@ -84,7 +85,7 @@ export function LandingPage() {
                   visible: { opacity: 1, x: 0 }
                 }}
               >
-                <item.icon size={20} className="text-blue" />
+                <item.icon size={20} style={{ color: "var(--text-main)" }} />
                 <span>{item.text}</span>
               </motion.div>
             ))}
@@ -106,61 +107,24 @@ export function LandingPage() {
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.3, duration: 0.6 }}
-          className="resume-3d-wrapper"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4, duration: 0.6 }}
+          className="hero-upload-wrapper"
         >
-          <div className="resume-card-3d">
-            <div className="resume-paper">
-              <div className="resume-header-section">
-                <div className="resume-avatar"></div>
-                <div className="resume-name-block">
-                  <div className="resume-name">Тарас Шевченко</div>
-                  <div className="resume-title">Senior Frontend Developer</div>
-                </div>
-              </div>
-              
-              <div className="resume-section">
-                <div className="resume-section-title">Досвід</div>
-                <div className="resume-line long"></div>
-                <div className="resume-line medium"></div>
-                <div className="resume-line short"></div>
-              </div>
-
-              <div className="resume-section">
-                <div className="resume-section-title">Навички</div>
-                <div className="resume-skills">
-                  <span className="resume-skill">React</span>
-                  <span className="resume-skill">TypeScript</span>
-                  <span className="resume-skill">Node.js</span>
-                </div>
-              </div>
-
-              <div className="resume-section">
-                <div className="resume-section-title">Освіта</div>
-                <div className="resume-line medium"></div>
-                <div className="resume-line short"></div>
-              </div>
+          <Link to="/register" className="hero-upload-card">
+            <div className="hero-upload-icon-area">
+              <UploadCloud size={40} strokeWidth={1.5} />
             </div>
-
-            <div className="annotation annotation-1">
-              <span className="annotation-icon">✓</span>
-              <span className="annotation-text">Ключові слова знайдено</span>
+            <div className="hero-upload-text">
+              <h3 className="hero-upload-title">Завантажте ваше резюме</h3>
+              <p className="hero-upload-desc">PDF або DOCX — і отримайте повний звіт за хвилину</p>
             </div>
-
-            <div className="annotation annotation-2">
-              <span className="annotation-icon warning">!</span>
-              <span className="annotation-text">Знайдено кліше</span>
+            <div className="hero-upload-hint">
+              <span className="hero-upload-badge">Безкоштовно</span>
+              <span className="hero-upload-arrow">→</span>
             </div>
-
-            <div className="annotation annotation-3">
-              <span className="annotation-icon">✓</span>
-              <span className="annotation-text">92% відповідність</span>
-            </div>
-
-            <div className="resume-glow"></div>
-          </div>
+          </Link>
         </motion.div>
       </section>
 
@@ -317,7 +281,7 @@ export function LandingPage() {
                 "Персональні рекомендації"
               ].map((f, i) => (
                 <div key={i} className="cta-perk-item">
-                  <CheckCircle size={16} className="text-blue" />
+                  <CheckCircle size={16} className="text-accent" />
                   <span>{f}</span>
                 </div>
               ))}

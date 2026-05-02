@@ -15,7 +15,7 @@ export const InputPanel = () => {
       </div>
 
       <div className="auto-detect-info">
-        <Globe size={16} className="text-blue" />
+        <Globe size={16} className="text-accent" />
         <span>Позицію та вимоги ринку визначимо автоматично з DOU, Work.ua та Robota.ua</span>
       </div>
 
