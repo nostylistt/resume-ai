@@ -2,6 +2,7 @@ const OpenAI = require('openai');
 const fs = require('fs');
 const path = require('path');
 const { scrapeJobListings } = require('./jobScraper');
+const { getCachedMarketData, setCachedMarketData } = require('./cacheService');
 
 /**
  * Fetches market requirements by scraping multiple job portals and aggregating data via LLM.
@@ -17,6 +18,13 @@ async function fetchMarketRequirements(position, searchKeywords = [], skills = {
     return null;
   }
 
+  // 1. ПЕРЕВІРКА КЕШУ
+  const cachedData = getCachedMarketData(position);
+  if (cachedData) {
+    console.log(`[Market Research] ⚡ SQLITE CACHE HIT! Завантажено з БД для: "${position}"`);
+    return cachedData;
+  }
+
   console.time('[Job Scraping (All Sources)]');
   const { rawTexts, sources } = await scrapeJobListings(searchKeywords, position);
   console.timeEnd('[Job Scraping (All Sources)]');
@@ -29,8 +37,7 @@ async function fetchMarketRequirements(position, searchKeywords = [], skills = {
   // Combine raw texts and enforce reasonable token limits
   const combinedText = rawTexts
     .map((t, i) => `--- Vacancy ${i + 1} ---\n${t}`)
-    .join('\n\n')
-    .substring(0, 6000);
+    .join('\n\n');
 
   // Debug logging for the LLM input
   const debugLogPath = path.join(__dirname, '..', 'market_research_debug.txt');
@@ -45,23 +52,28 @@ async function fetchMarketRequirements(position, searchKeywords = [], skills = {
 
   const openai = new OpenAI({ apiKey });
 
-  const prompt = `Analyze these ${rawTexts.length} job listings for "${position}" in Ukraine and extract aggregated market requirements.
+  const prompt = `Analyze these ${rawTexts.length} job listings for "${position}" in Ukraine and extract market requirements based on statistical frequency.
 
 ${combinedText}
 
 ---
+RULES FOR SKILL EXTRACTION:
+1. Count how many vacancies mention each technical skill or tool.
+2. If a skill appears in >50% of vacancies, it is a "requiredSkill".
+3. If a skill appears in 15% to 50% of vacancies, it is a "preferredSkill".
+4. If a skill appears in <15% of vacancies, IGNORE IT entirely (it is noise).
+5. DO NOT extract soft skills (like communication, teamwork).
+
 Return ONLY valid JSON (no markdown):
 {
   "positionTitle": "normalized position title",
   "requiredSkills": {
-    "technical": ["must-have tech skills from MOST listings"],
-    "soft": ["must-have soft skills"],
-    "tools": ["must-have tools"]
+    "technical": ["list of skills found in >50% of vacancies"],
+    "tools": ["list of tools found in >50% of vacancies"]
   },
   "preferredSkills": {
-    "technical": ["nice-to-have tech"],
-    "soft": ["nice-to-have soft"],
-    "tools": ["nice-to-have tools"]
+    "technical": ["list of skills found in 15-50% of vacancies"],
+    "tools": ["list of tools found in 15-50% of vacancies"]
   },
   "typicalExperience": "e.g. 2-4 years",
   "commonRequirements": ["English level, education, work format etc."],
@@ -92,7 +104,7 @@ Return ONLY valid JSON (no markdown):
       console.timeEnd(`[Market Normalize LLM (attempt ${attempt})]`);
 
       const rawText = response.choices[0].message.content;
-      
+
       // Dump raw LLM output for debugging
       fs.appendFileSync(debugLogPath, `=== LLM RAW OUTPUT ===\n\n${rawText}\n\n`);
 
@@ -104,6 +116,10 @@ Return ONLY valid JSON (no markdown):
 
       const result = normalizeMarketData(parsed);
       result.sources = sources;
+      
+      // 2. ЗБЕРЕЖЕННЯ В КЕШ
+      setCachedMarketData(position, result);
+
       return result;
 
     } catch (error) {
@@ -147,7 +163,6 @@ function extractJSON(text) {
 function normalizeMarketData(data) {
   const normalizeSkillGroup = (group) => ({
     technical: Array.isArray(group?.technical) ? group.technical : [],
-    soft: Array.isArray(group?.soft) ? group.soft : [],
     tools: Array.isArray(group?.tools) ? group.tools : [],
   });
 

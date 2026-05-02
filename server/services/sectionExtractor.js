@@ -3,7 +3,7 @@ const { z } = require('zod');
 const { zodResponseFormat } = require('openai/helpers/zod');
 
 const ResumeSchema = z.object({
-  position: z.string().nullable().describe("бажана посада, якщо зазначено"),
+  position: z.string().nullable().describe("Бажана посада англійською. Якщо для цієї професії актуальний рівень Seniority (Junior/Middle/Senior) І він очевидний з досвіду, додай його до назви (напр. 'Junior Project Manager'). Якщо ні — просто назва."),
   contact: z.object({
     fullName: z.string().nullable(),
     email: z.string().nullable(),

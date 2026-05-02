@@ -6,3 +6,8 @@ build/
 .env.local
 
 npm-debug.log*
+
+market_research_debug.txt
+robota_detail.json
+cvs/
+robota.json
