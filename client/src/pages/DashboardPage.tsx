@@ -1,11 +1,11 @@
-import { useAuthStore } from "../../store/useAuthStore";
-import { Button } from "../../components/ui/button";
+import { useAuthStore } from "../store/useAuthStore";
+import { Button } from "../components/ui/button";
 import { LogOut, User, History } from "lucide-react";
-import { InputPanel } from "../../components/dashboard/InputPanel";
-import { ResultsPanel } from "../../components/dashboard/ResultsPanel";
-import { InsightsPanel } from "../../components/dashboard/InsightsPanel";
-import { Logo } from "../../components/Logo";
-import "./DashboardPage.css";
+import { InputPanel } from "../components/dashboard/InputPanel";
+import { ResultsPanel } from "../components/dashboard/ResultsPanel";
+import { InsightsPanel } from "../components/dashboard/InsightsPanel";
+import { Logo } from "../components/Logo";
+import "../App.css";
 
 export function DashboardPage() {
   const { user, logout } = useAuthStore();
@@ -16,8 +16,8 @@ export function DashboardPage() {
         <div className="dashboard-brand">
           <Logo />
         </div>
-
-        <div className="dashboard-header-right">
+        
+        <div className="dashboard-nav">
           <nav className="dashboard-nav">
             <a href="#" className="dash-nav-link">
               <History size={14} />
@@ -33,9 +33,9 @@ export function DashboardPage() {
             <div className="user-avatar">
               <User size={16} />
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
+            <Button 
+              variant="ghost" 
+              size="icon" 
               onClick={logout}
               className="logout-btn"
               title="Вийти"
@@ -48,17 +48,17 @@ export function DashboardPage() {
 
       <main className="dashboard-main">
         <div className="dashboard-grid">
-          <div className="dashboard-column">
-            <InputPanel />
-          </div>
+            <div className="dashboard-column">
+                <InputPanel />
+            </div>
 
-          <div className="dashboard-column results-column">
-            <ResultsPanel />
-          </div>
+            <div className="dashboard-column results-column">
+                <ResultsPanel />
+            </div>
 
-          <div className="dashboard-column">
-            <InsightsPanel />
-          </div>
+            <div className="dashboard-column">
+                <InsightsPanel />
+            </div>
         </div>
       </main>
     </div>

@@ -179,7 +179,7 @@ export const ResultsPanel = () => {
           <div className="metric-bar-container">
             <div className="metric-header">
               <span className="structure-block-title">Загальний бал тексту</span>
-              <span className="read-value">78%</span>
+              <span style={{ color: "white", fontWeight: 600 }}>78%</span>
             </div>
             <div className="progress-track">
               <div className="progress-fill" style={{ width: "78%" }} />

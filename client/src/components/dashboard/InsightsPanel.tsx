@@ -28,7 +28,7 @@ export const InsightsPanel = () => {
       </div>
 
       <div className="comparison-section">
-        <h3 className="structure-block-title">Покращення формулювань</h3>
+        <h3 className="card-subtitle" style={{color: 'white'}}>Покращення формулювань</h3>
         <div className="comparison-grid">
             <div className="compare-box compare-before">
                 <div className="compare-label before">Before</div>
@@ -41,7 +41,7 @@ export const InsightsPanel = () => {
             </div>
             <div className="compare-box compare-after">
                 <div className="compare-label after">After</div>
-                <p className="compare-text">"Developed responsive UI components using React and Tailwind, improving load time by 20%."</p>
+                <p className="compare-text" style={{color: '#d1d5db'}}>"Developed responsive UI components using React and Tailwind, improving load time by 20%."</p>
             </div>
         </div>
       </div>
