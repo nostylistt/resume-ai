@@ -1,9 +1,10 @@
 import { Button } from "../components/ui/button";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Eye, Upload, Search, Sparkles, Target, BarChart3, LayoutList, BookOpen, Lightbulb, Zap, CheckCircle, Globe } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import { Header } from "../components/Header";
+import { Logo } from "../components/Logo";
 
 export function LandingPage() {
   const [activeFeature, setActiveFeature] = useState(0);
@@ -115,7 +116,7 @@ export function LandingPage() {
               <div className="resume-header-section">
                 <div className="resume-avatar"></div>
                 <div className="resume-name-block">
-                  <div className="resume-name">Василь Шевченко</div>
+                  <div className="resume-name">Тарас Шевченко</div>
                   <div className="resume-title">Senior Frontend Developer</div>
                 </div>
               </div>
@@ -222,19 +223,21 @@ export function LandingPage() {
                     {activeFeature === i ? "−" : "+"}
                   </span>
                 </button>
-                {activeFeature === i && (
-                  <motion.div
-                    className="acc-body"
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.3, ease: "easeOut" }}
-                  >
-                    <div className="acc-content">
-                      <p className="acc-desc">{feature.desc}</p>
-                    </div>
-                  </motion.div>
-                )}
+                <AnimatePresence initial={false}>
+                  {activeFeature === i && (
+                    <motion.div
+                      className="acc-body"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3, ease: "easeOut" }}
+                    >
+                      <div className="acc-content">
+                        <p className="acc-desc">{feature.desc}</p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             ))}
           </div>
@@ -334,13 +337,39 @@ export function LandingPage() {
       </section>
 
       <footer className="footer">
-        <div className="container footer-content">
-          <div className="footer-copyright">© 2025 Resumatch</div>
-          <nav className="footer-nav">
-            <a href="#how">Як це працює</a>
-            <a href="#features">Що входить в аналіз</a>
-            <a href="#example">Приклад</a>
-          </nav>
+        <div className="container">
+          <div className="footer-grid">
+            <div className="footer-brand-section">
+              <div className="dashboard-brand" style={{ marginBottom: "16px" }}>
+               <Logo />
+              </div>
+              <p className="footer-desc">
+                Розумний аналіз вашого резюме.
+              </p>
+            </div>
+            
+            <div className="footer-links-section">
+              <div className="footer-column">
+                <h4 className="footer-col-title">Продукт</h4>
+                <nav className="footer-col-nav">
+                  <a href="#how">Як це працює</a>
+                  <a href="#features">Що входить в аналіз</a>
+                  <a href="#example">Приклад</a>
+                </nav>
+              </div>
+              <div className="footer-column">
+                <h4 className="footer-col-title">Платформа</h4>
+                <nav className="footer-col-nav">
+                  <Link to="/register">Спробувати безкоштовно</Link>
+                  <Link to="/login">Увійти</Link>
+                </nav>
+              </div>
+            </div>
+          </div>
+          
+          <div className="footer-bottom">
+            <div className="footer-copyright">© 2026 Resumatch. Усі права захищено.</div>
+          </div>
         </div>
       </footer>
     </div>
