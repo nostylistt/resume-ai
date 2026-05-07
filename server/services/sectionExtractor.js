@@ -2,6 +2,7 @@ const OpenAI = require('openai');
 const { z } = require('zod');
 const { zodResponseFormat } = require('openai/helpers/zod');
 
+// ZOD normalizied schema for LLM (structured outputs)
 const ResumeSchema = z.object({
   position: z.string().nullable().describe("Бажана посада англійською. Якщо для цієї професії актуальний рівень Seniority (Junior/Middle/Senior) І він очевидний з досвіду, додай його до назви (напр. 'Junior Project Manager'). Якщо ні — просто назва."),
   contact: z.object({
@@ -63,7 +64,7 @@ const ResumeSchema = z.object({
   }))
 });
 
-// Системний промпт
+// System prompt
 const SYSTEM_PROMPT = `You are a resume data extraction expert. Extract structured data from resume text.
 
 RULES:
@@ -73,12 +74,8 @@ RULES:
 4. Do NOT invent data not present in the text.
 5. Do NOT truncate or modify text from the resume. Data accuracy is critical.`;
 
-/**
- * Витягує структуровані дані з сирого тексту резюме через OpenAI API (Structured Outputs).
- *
- * @param {string} rawText — сирий текст з pdf / mammoth
- * @returns {Promise<Object>} — структуровані дані резюме
- */
+// Extract structured data from raw resume text via OpenAI API (Structured Outputs).
+
 async function extractSections(rawText) {
   if (!rawText || typeof rawText !== 'string' || rawText.trim().length === 0) {
     return createEmptyResult();
@@ -92,7 +89,7 @@ async function extractSections(rawText) {
 
   const openai = new OpenAI({ apiKey });
   const prompt = `Extract all data from the following resume text:\n\nResume text:\n---\n${rawText}\n---`;
-  const MAX_RETRIES = 10;
+  const MAX_RETRIES = 3;
   let lastError = null;
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
@@ -121,14 +118,14 @@ async function extractSections(rawText) {
         break;
       }
 
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt - 1)));
     }
   }
 
   throw lastError;
 }
 
-// Нормалізація та валідація
+// Normalization and validation
 function normalizeResult(data) {
   return {
     position: data.position || null,

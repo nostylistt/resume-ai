@@ -1,17 +1,16 @@
 const cheerio = require('cheerio');
 
-/**
- * Intelligent extraction of requirements from HTML DOM.
- * Looks for specific headers and extracts the following content.
- * Falls back to extracting list items, and finally to the whole body.
- */
+//  Intelligent extraction of requirements from HTML DOM.
+// Looks for specific headers and extracts the following content.
+// Falls back to extracting list items, and finally to the whole body.
+
 function extractRequirements(html) {
   const $ = cheerio.load(html);
   const keywords = ['вимог', 'навичк', 'requirements', 'skills', 'expectations', 'очікуєм', 'must have', 'looking for', 'обов\'язково', 'досвід', 'знання'];
-  
-  // Якщо це Work.ua або подібний сайт з чітким блоком опису, шукаємо тільки в ньому
+
+  // If this is Work.ua or similar site with a clear description block, we look only in it
   const root = $('#job-description').length > 0 ? $('#job-description') : $('body');
-  
+
   let requirementsText = '';
   let foundSection = false;
 
@@ -53,9 +52,8 @@ function extractRequirements(html) {
   return requirementsText.trim().substring(0, 1500);
 }
 
-/**
- * Fetches and parses job listings from DOU.ua based on the search query.
- */
+// Fetches and parses job listings from DOU.ua based on the search query.
+
 async function scrapeDOUListings(searchQuery) {
   try {
     const url = `https://jobs.dou.ua/vacancies/?search=${encodeURIComponent(searchQuery)}`;
@@ -95,16 +93,18 @@ async function scrapeDOUListings(searchQuery) {
     }
 
     console.log(`[DOU] Found ${vacancyUrls.length} vacancy URLs`);
-    return vacancyUrls;
+    const details = await Promise.all(
+      vacancyUrls.map(url => scrapeDOUVacancy(url))
+    );
+    return details.filter(item => item.text.length > 50);
   } catch (error) {
     console.error('[DOU] Scraping error:', error.message);
     return [];
   }
 }
 
-/**
- * Scrapes detailed information from a single DOU vacancy page.
- */
+// Scrapes detailed information from a single DOU vacancy page.
+
 async function scrapeDOUVacancy(url) {
   try {
     const response = await fetch(url, {
@@ -114,19 +114,22 @@ async function scrapeDOUVacancy(url) {
       },
     });
 
-    if (!response.ok) return '';
+    if (!response.ok) return null;
 
     const html = await response.text();
-    return extractRequirements(html);
+    return {
+      source: 'dou',
+      url,
+      text: extractRequirements(html),
+    };
   } catch (error) {
     console.error(`[DOU] Error scraping ${url}:`, error.message);
-    return '';
+    return null;
   }
 }
 
-/**
- * Fetches and parses job listings from Work.ua based on the search query.
- */
+// Fetches and parses job listings from Work.ua based on the search query.
+
 async function scrapeWorkUaListings(searchQuery) {
   try {
     const formattedQuery = encodeURIComponent(searchQuery.toLowerCase()).replace(/%20/g, '+');
@@ -166,16 +169,20 @@ async function scrapeWorkUaListings(searchQuery) {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
           }
         });
-        if (!vResp.ok) return '';
+        if (!vResp.ok) return null;
         const vHtml = await vResp.text();
-        return extractRequirements(vHtml);
+        return {
+          source: 'workua',
+          url: vUrl,
+          text: extractRequirements(vHtml),
+        };
       } catch (err) {
-        return '';
+        return null;
       }
     });
 
     const details = await Promise.all(detailsPromises);
-    return details.filter(t => t.length > 50);
+    return details.filter(item => item && item.text.length > 50);
 
   } catch (error) {
     console.error('[Work.ua] Scraping error:', error.message);
@@ -183,9 +190,8 @@ async function scrapeWorkUaListings(searchQuery) {
   }
 }
 
-/**
- * Fetches and parses job listings from Robota.ua using their API.
- */
+// Fetches and parses job listings from Robota.ua using their API.
+
 async function scrapeRobotaUaListings(searchQuery) {
   try {
     const searchUrl = `https://api.rabota.ua/vacancy/search?keyWords=${encodeURIComponent(searchQuery)}`;
@@ -197,7 +203,6 @@ async function scrapeRobotaUaListings(searchQuery) {
         'Accept': 'application/json',
       },
     });
-
     if (!response.ok) {
       console.warn(`[Robota.ua] HTTP ${response.status}`);
       return [];
@@ -219,18 +224,22 @@ async function scrapeRobotaUaListings(searchQuery) {
             'Accept': 'application/json',
           }
         });
-        if (!detailResp.ok) return '';
+        if (!detailResp.ok) return null;
         const detailData = await detailResp.json();
 
         const htmlDescription = detailData.description || '';
-        return extractRequirements(htmlDescription);
+        return {
+          source: 'robota',
+          url: detailUrl,
+          text: extractRequirements(htmlDescription),
+        };
       } catch (err) {
-        return '';
+        return null;
       }
     });
 
     const details = await Promise.all(detailsPromises);
-    return details.filter(t => t.length > 50);
+    return details.filter(item => item && item.text.length > 50);
 
   } catch (error) {
     console.error('[Robota.ua] Scraping error:', error.message);
@@ -238,45 +247,131 @@ async function scrapeRobotaUaListings(searchQuery) {
   }
 }
 
-/**
- * Aggregates job listings from multiple sources (DOU, Work.ua, Robota.ua).
- */
-async function scrapeJobListings(searchKeywords, position) {
-  // Use position for search, or fallback to first keyword
-  const searchQuery = position ? position : (searchKeywords.length > 0 ? searchKeywords[0] : '');
+function normalizeVacancyText(text) {
+  return text
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/[^\p{L}\p{N}\s]/gu, '')
+    .trim();
+}
 
-  console.log(`[JobScraper] Search query: "${searchQuery}"`);
+function dedupeVacancyEntries(entries) {
+  const seen = new Set();
+  const uniqueEntries = [];
+  let duplicatesRemoved = 0;
 
-  const [douUrls, workUaTexts, robotaTexts] = await Promise.all([
-    scrapeDOUListings(searchQuery),
-    scrapeWorkUaListings(searchQuery),
-    scrapeRobotaUaListings(searchQuery),
+  for (const entry of entries) {
+    if (!entry || !entry.text) continue;
+
+    const normalizedText = normalizeVacancyText(entry.text);
+    if (!normalizedText) continue;
+
+    const fingerprint = normalizedText.slice(0, 1000);
+    if (seen.has(fingerprint)) {
+      duplicatesRemoved++;
+      continue;
+    }
+
+    seen.add(fingerprint);
+    uniqueEntries.push(entry);
+  }
+
+  return {
+    uniqueEntries,
+    duplicatesRemoved,
+  };
+}
+
+// Aggregates job listings from multiple sources (DOU, Work.ua, Robota.ua).
+
+async function scrapeAllSources(query) {
+  const [douEntries, workUaEntries, robotaEntries] = await Promise.all([
+    scrapeDOUListings(query),
+    scrapeWorkUaListings(query),
+    scrapeRobotaUaListings(query),
   ]);
 
-  const rawTexts = [...workUaTexts, ...robotaTexts];
+  const entries = [...douEntries, ...workUaEntries, ...robotaEntries];
   const sources = [];
+  const sourceKeys = [];
 
-  if (workUaTexts.length > 0) {
-    sources.push(`https://www.work.ua/jobs-${encodeURIComponent(searchQuery.toLowerCase()).replace(/%20/g, '+')}/`);
+  if (douEntries.length > 0) {
+    sourceKeys.push('dou');
+    sources.push(`https://jobs.dou.ua/vacancies/?search=${encodeURIComponent(query)}`);
   }
-  if (robotaTexts.length > 0) {
-    sources.push(`https://robota.ua/zapros/${encodeURIComponent(searchQuery.replace(/\s+/g, '-'))}/ukraine`);
+  if (workUaEntries.length > 0) {
+    sourceKeys.push('workua');
+    sources.push(`https://www.work.ua/jobs-${encodeURIComponent(query.toLowerCase()).replace(/%20/g, '+')}/`);
+  }
+  if (robotaEntries.length > 0) {
+    sourceKeys.push('robota');
+    sources.push(`https://robota.ua/zapros/${encodeURIComponent(query.replace(/\s+/g, '-'))}/ukraine`);
+  }
+  
+  return { entries, sources, sourceKeys };
+}
+
+async function scrapeJobListings(searchKeywords, position) {
+  let allEntries = [];
+  let allSources = [];
+  let allSourceKeys = [];
+  let duplicatesRemoved = 0;
+  
+  const queries = [];
+  if (position) queries.push(position);
+  if (Array.isArray(searchKeywords)) {
+    searchKeywords.forEach(kw => {
+      if (!queries.includes(kw)) queries.push(kw);
+    });
+  }
+  
+  if (queries.length === 0) {
+    console.warn(`[JobScraper] No search queries available`);
+    return {
+      rawTexts: [],
+      sources: [],
+      sourceKeys: [],
+      dedupeStats: { duplicatesRemoved: 0, finalCount: 0 }
+    };
   }
 
-  // DOU — scrape details of the first 10 vacancies
-  const douDetailPromises = douUrls.slice(0, 10).map(url => scrapeDOUVacancy(url));
-  const douDetails = await Promise.all(douDetailPromises);
-
-  for (const detail of douDetails) {
-    if (detail.length > 50) {
-      rawTexts.push(detail);
+  for (const query of queries) {
+    console.log(`[JobScraper] Executing search for: "${query}"`);
+    
+    const { entries, sources, sourceKeys } = await scrapeAllSources(query);
+    
+    allEntries.push(...entries);
+    sources.forEach(src => {
+      if (!allSources.includes(src)) allSources.push(src);
+    });
+    sourceKeys.forEach(sourceKey => {
+      if (!allSourceKeys.includes(sourceKey)) allSourceKeys.push(sourceKey);
+    });
+    
+    console.log(`[JobScraper] Extracted ${entries.length} texts for "${query}". Total so far: ${allEntries.length}`);
+    
+    if (allEntries.length >= 10) {
+      break;
     }
   }
-  sources.push(...douUrls.slice(0, 10));
 
-  console.log(`[JobScraper] Total raw texts extracted: ${rawTexts.length}, sources tracking: ${sources.length}`);
+  const dedupeResult = dedupeVacancyEntries(allEntries);
+  duplicatesRemoved = dedupeResult.duplicatesRemoved;
 
-  return { rawTexts, sources };
+  const rawTexts = dedupeResult.uniqueEntries.map(entry => entry.text);
+  const sources = [...new Set(dedupeResult.uniqueEntries.map(entry => entry.url).filter(Boolean))];
+
+  console.log(`[JobScraper] Final raw texts extracted: ${rawTexts.length}, duplicates removed: ${duplicatesRemoved}, sources tracking: ${sources.length || allSources.length}`);
+
+  return {
+    rawTexts,
+    sources: sources.length > 0 ? sources : allSources,
+    sourceKeys: allSourceKeys,
+    dedupeStats: {
+      duplicatesRemoved,
+      finalCount: rawTexts.length,
+    },
+  };
 }
 
 module.exports = {

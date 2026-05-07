@@ -3,6 +3,23 @@ const fs = require('fs');
 const path = require('path');
 const { scrapeJobListings } = require('./jobScraper');
 const { getCachedMarketData, setCachedMarketData } = require('./cacheService');
+const { z } = require('zod');
+const { zodResponseFormat } = require('openai/helpers/zod');
+
+const SkillGroupSchema = z.object({
+  technical: z.array(z.string()),
+  tools: z.array(z.string())
+});
+
+const MarketDataSchema = z.object({
+  positionTitle: z.string().nullable(),
+  requiredSkills: SkillGroupSchema,
+  preferredSkills: SkillGroupSchema,
+  typicalExperience: z.string().nullable(),
+  commonRequirements: z.array(z.string()),
+  trendingTechnologies: z.array(z.string()),
+  marketInsights: z.string().nullable()
+});
 
 /**
  * Fetches market requirements by scraping multiple job portals and aggregating data via LLM.
@@ -18,7 +35,7 @@ async function fetchMarketRequirements(position, searchKeywords = [], skills = {
     return null;
   }
 
-  // 1. ПЕРЕВІРКА КЕШУ
+  // 1. Cache check
   const cachedData = getCachedMarketData(position);
   if (cachedData) {
     console.log(`[Market Research] ⚡ SQLITE CACHE HIT! Завантажено з БД для: "${position}"`);
@@ -26,7 +43,7 @@ async function fetchMarketRequirements(position, searchKeywords = [], skills = {
   }
 
   console.time('[Job Scraping (All Sources)]');
-  const { rawTexts, sources } = await scrapeJobListings(searchKeywords, position);
+  const { rawTexts, sources, sourceKeys, dedupeStats } = await scrapeJobListings(searchKeywords, position);
   console.timeEnd('[Job Scraping (All Sources)]');
 
   if (rawTexts.length === 0) {
@@ -39,9 +56,11 @@ async function fetchMarketRequirements(position, searchKeywords = [], skills = {
     .map((t, i) => `--- Vacancy ${i + 1} ---\n${t}`)
     .join('\n\n');
 
-  // Debug logging for the LLM input
+  // Debug logging for the LLM input (dev only)
   const debugLogPath = path.join(__dirname, '..', 'market_research_debug.txt');
-  fs.writeFileSync(debugLogPath, `=== LLM PROMPT (SCRAPED DATA) ===\n\n${combinedText}\n\n=================================\n\n`);
+  if (process.env.NODE_ENV === 'development') {
+    fs.promises.writeFile(debugLogPath, `=== LLM PROMPT (SCRAPED DATA) ===\n\n${combinedText}\n\n=================================\n\n`).catch(() => { });
+  }
 
   // Normalize aggregated data using LLM
   const apiKey = process.env.OPENAI_API_KEY;
@@ -64,22 +83,7 @@ RULES FOR SKILL EXTRACTION:
 4. If a skill appears in <15% of vacancies, IGNORE IT entirely (it is noise).
 5. DO NOT extract soft skills (like communication, teamwork).
 
-Return ONLY valid JSON (no markdown):
-{
-  "positionTitle": "normalized position title",
-  "requiredSkills": {
-    "technical": ["list of skills found in >50% of vacancies"],
-    "tools": ["list of tools found in >50% of vacancies"]
-  },
-  "preferredSkills": {
-    "technical": ["list of skills found in 15-50% of vacancies"],
-    "tools": ["list of tools found in 15-50% of vacancies"]
-  },
-  "typicalExperience": "e.g. 2-4 years",
-  "commonRequirements": ["English level, education, work format etc."],
-  "trendingTechnologies": ["growing in demand"],
-  "marketInsights": "2-3 sentences in Ukrainian about market for this position"
-}`;
+`;
 
   const MAX_RETRIES = 3;
   let lastError = null;
@@ -88,36 +92,34 @@ Return ONLY valid JSON (no markdown):
     try {
       console.time(`[Market Normalize LLM (attempt ${attempt})]`);
 
-      const response = await openai.chat.completions.create({
+      const response = await openai.chat.completions.parse({
         model: 'gpt-4.1-mini',
         messages: [
           {
             role: 'system',
-            content: 'You are a job market analyst. Extract and aggregate skill requirements from job listings. Be concise. Output JSON only.'
+            content: 'You are a job market analyst. Extract and aggregate skill requirements from job listings. Be concise.'
           },
           { role: 'user', content: prompt }
         ],
-        response_format: { type: "json_object" },
-        max_tokens: 1000,
+        response_format: zodResponseFormat(MarketDataSchema, 'market_data'),
       });
 
       console.timeEnd(`[Market Normalize LLM (attempt ${attempt})]`);
 
-      const rawText = response.choices[0].message.content;
+      const parsed = response.choices[0].message.parsed;
 
-      // Dump raw LLM output for debugging
-      fs.appendFileSync(debugLogPath, `=== LLM RAW OUTPUT ===\n\n${rawText}\n\n`);
-
-      const parsed = extractJSON(rawText);
+      // Dump parsed LLM output for debugging (dev only)
+      if (process.env.NODE_ENV === 'development') {
+        fs.promises.appendFile(debugLogPath, `=== LLM PARSED OUTPUT ===\n\n${JSON.stringify(parsed, null, 2)}\n\n`).catch(() => { });
+      }
 
       if (!parsed) {
         throw new Error('Failed to parse JSON from LLM response');
       }
 
-      const result = normalizeMarketData(parsed);
-      result.sources = sources;
-      
-      // 2. ЗБЕРЕЖЕННЯ В КЕШ
+      const result = normalizeMarketData(parsed, sources, rawTexts.length, dedupeStats, sourceKeys);
+
+      // Cache save
       setCachedMarketData(position, result);
 
       return result;
@@ -135,32 +137,8 @@ Return ONLY valid JSON (no markdown):
   return null;
 }
 
-/**
- * Витягує JSON з тексту відповіді
- */
-function extractJSON(text) {
-  if (!text) return null;
-
-  const jsonBlockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
-  if (jsonBlockMatch) {
-    try { return JSON.parse(jsonBlockMatch[1].trim()); }
-    catch (e) { /* fallthrough */ }
-  }
-
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (jsonMatch) {
-    try { return JSON.parse(jsonMatch[0]); }
-    catch (e) { /* fallthrough */ }
-  }
-
-  try { return JSON.parse(text.trim()); }
-  catch (e) { return null; }
-}
-
-/**
- * Нормалізація ринкових даних
- */
-function normalizeMarketData(data) {
+// Normalize market data
+function normalizeMarketData(data, sources = [], sampleSize = 0, dedupeStats = null, sourceKeys = []) {
   const normalizeSkillGroup = (group) => ({
     technical: Array.isArray(group?.technical) ? group.technical : [],
     tools: Array.isArray(group?.tools) ? group.tools : [],
@@ -174,10 +152,15 @@ function normalizeMarketData(data) {
     commonRequirements: Array.isArray(data.commonRequirements) ? data.commonRequirements : [],
     trendingTechnologies: Array.isArray(data.trendingTechnologies) ? data.trendingTechnologies : [],
     marketInsights: data.marketInsights || null,
-    sources: [],
+    sampleSize,
+    sourceCount: Array.isArray(sourceKeys) ? sourceKeys.length : 0,
+    dedupeStats: dedupeStats || { duplicatesRemoved: 0, finalCount: sampleSize },
+    sources: Array.isArray(sources) ? sources : [],
   };
 }
 
 module.exports = {
   fetchMarketRequirements,
 };
+
+
