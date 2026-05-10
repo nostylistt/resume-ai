@@ -52,7 +52,9 @@ export function RegisterPage() {
 
     try {
       await register(email, password, fullName);
-    } catch (err) {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Не вдалося створити акаунт.";
+      setSubmitError(message);
     }
   };
 

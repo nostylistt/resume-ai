@@ -36,7 +36,9 @@ export function LoginPage() {
 
     try {
       await login(email, password, rememberMe);
-    } catch (err: any) {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Не вдалося увійти.";
+      setSubmitError(message);
     }
   };
 

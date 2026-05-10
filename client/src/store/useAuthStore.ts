@@ -22,6 +22,10 @@ interface AuthState {
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://resume-ai-back.onrender.com/api';
 
+const getErrorMessage = (error: unknown, fallback: string) => {
+    return error instanceof Error ? error.message : fallback;
+};
+
 export const useAuthStore = create<AuthState>((set) => ({
     user: null,
     isAuthenticated: false,
@@ -49,8 +53,8 @@ export const useAuthStore = create<AuthState>((set) => ({
             Cookies.set('token', token, cookieOptions);
 
             set({ user, isAuthenticated: true, isLoading: false });
-        } catch (error: any) {
-            set({ error: error.message, isLoading: false });
+        } catch (error) {
+            set({ error: getErrorMessage(error, 'Login failed'), isLoading: false });
             throw error;
         }
     },
@@ -74,8 +78,8 @@ export const useAuthStore = create<AuthState>((set) => ({
             Cookies.set('token', token, { expires: 1 });
 
             set({ user, isAuthenticated: true, isLoading: false });
-        } catch (error: any) {
-            set({ error: error.message, isLoading: false });
+        } catch (error) {
+            set({ error: getErrorMessage(error, 'Registration failed'), isLoading: false });
             throw error;
         }
     },
@@ -107,7 +111,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
             const user = await response.json();
             set({ user, isAuthenticated: true, isLoading: false });
-        } catch (error) {
+        } catch {
             Cookies.remove('token');
             set({ user: null, isAuthenticated: false, isLoading: false });
         }
