@@ -145,7 +145,7 @@ function analyzeText(parsedResume) {
   if (foundCliches.length > 0) {
     addFeedback(
       'suggestion',
-      `Знайдено кліше-слова: ${foundCliches.slice(0, 3).join(', ')}. Краще замінити їх на конкретні приклади або цифри.`,
+      `Знайдено слова-кліше: ${foundCliches.slice(0, 3).join(', ')}. Краще замінити їх на конкретні приклади або цифри.`,
       Math.min(foundCliches.length, 2),
       'summary'
     );
@@ -197,7 +197,7 @@ function analyzeText(parsedResume) {
     if (avgStrength < 3.5 && totalBullets >= 2) {
       addFeedback(
         'warning',
-        `Описи досвіду поки слабкуваті (вплив: ${avgStrength.toFixed(1)}/10). Краще писати у формулі: сильне дієслово + результат + метрика.`,
+        `Описи досвіду поки слабкуваті (вплив: ${avgStrength.toFixed(1)}/10). Краще писати у форматі: сильне дієслово + результат + метрика.`,
         bulletsWithMetrics === 0 ? 8 : 5,
         'experience'
       );

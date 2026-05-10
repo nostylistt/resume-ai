@@ -1,9 +1,5 @@
 const cheerio = require('cheerio');
 
-//  Intelligent extraction of requirements from HTML DOM.
-// Looks for specific headers and extracts the following content.
-// Falls back to extracting list items, and finally to the whole body.
-
 function extractRequirements(html) {
   const $ = cheerio.load(html);
   const keywords = ['вимог', 'навичк', 'requirements', 'skills', 'expectations', 'очікуєм', 'must have', 'looking for', 'обов\'язково', 'досвід', 'знання'];
@@ -307,7 +303,7 @@ async function scrapeAllSources(query) {
     sourceKeys.push('robota');
     sources.push(`https://robota.ua/zapros/${encodeURIComponent(query.replace(/\s+/g, '-'))}/ukraine`);
   }
-  
+
   return { entries, sources, sourceKeys };
 }
 
@@ -316,7 +312,7 @@ async function scrapeJobListings(searchKeywords, position) {
   let allSources = [];
   let allSourceKeys = [];
   let duplicatesRemoved = 0;
-  
+
   const queries = [];
   if (position) queries.push(position);
   if (Array.isArray(searchKeywords)) {
@@ -324,7 +320,7 @@ async function scrapeJobListings(searchKeywords, position) {
       if (!queries.includes(kw)) queries.push(kw);
     });
   }
-  
+
   if (queries.length === 0) {
     console.warn(`[JobScraper] No search queries available`);
     return {
@@ -337,9 +333,9 @@ async function scrapeJobListings(searchKeywords, position) {
 
   for (const query of queries) {
     console.log(`[JobScraper] Executing search for: "${query}"`);
-    
+
     const { entries, sources, sourceKeys } = await scrapeAllSources(query);
-    
+
     allEntries.push(...entries);
     sources.forEach(src => {
       if (!allSources.includes(src)) allSources.push(src);
@@ -347,9 +343,9 @@ async function scrapeJobListings(searchKeywords, position) {
     sourceKeys.forEach(sourceKey => {
       if (!allSourceKeys.includes(sourceKey)) allSourceKeys.push(sourceKey);
     });
-    
+
     console.log(`[JobScraper] Extracted ${entries.length} texts for "${query}". Total so far: ${allEntries.length}`);
-    
+
     if (allEntries.length >= 10) {
       break;
     }

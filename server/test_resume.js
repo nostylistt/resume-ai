@@ -4,7 +4,7 @@ const fs = require('fs');
 const { uploadResume } = require('./controllers/resumeController');
 
 async function test() {
-  const filePath = 'C:\\Users\\tcove\\Downloads\\CV_Front (1).pdf';
+  const filePath = 'C:\\Users\\tcove\\Downloads\\Telegram Desktop\\Maksym_Ivanitskyi_CV.pdf';
   if (!fs.existsSync(filePath)) {
     console.error('File not found:', filePath);
     return;

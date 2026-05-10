@@ -5,6 +5,7 @@ const { fetchMarketRequirements } = require('../services/marketResearch');
 const { compareSkills } = require('../services/skillsComparator');
 const { analyzeStructure } = require('../services/structureAnalyzer');
 const { analyzeText } = require('../services/textAnalyzer');
+const { validateResumeContent } = require('../services/resumeContentValidator');
 
 const upload = multer({
     storage: multer.memoryStorage(),
@@ -40,6 +41,15 @@ const uploadResume = async (req, res) => {
         console.time('[Resume Extraction API]');
         const parsedResume = await extractSections(parsedText);
         console.timeEnd('[Resume Extraction API]');
+
+        const resumeValidation = validateResumeContent(parsedResume, parsedText);
+        if (!resumeValidation.isValid) {
+            console.warn('[Resume Validation] Rejected non-resume document:', resumeValidation.reason, resumeValidation.signals);
+            return res.status(422).json({
+                message: 'Файл не схожий на резюме. Завантажте PDF або DOCX з резюме кандидата.',
+                reason: resumeValidation.reason
+            });
+        }
 
         // Parallel pass: local analysis + market data in one shot.
         const position = parsedResume.position;
