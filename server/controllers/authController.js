@@ -124,7 +124,7 @@ const forgotPassword = async (req, res) => {
     try {
         await createPasswordResetRequest(email);
         return res.json({
-            message: 'Якщо акаунт із цим email існує, ми вже надіслали посилання для скидання пароля.',
+            message: 'Успішно! Ми надіслали лист на вашу пошту.',
         });
     } catch (err) {
         console.error(err);
