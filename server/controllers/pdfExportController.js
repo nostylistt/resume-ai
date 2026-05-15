@@ -3,7 +3,7 @@ const { generateAnalysisPdf } = require('../services/pdfExportService');
 const { getResumeAnalysisSnapshot } = require('../services/analysisHistoryService');
 
 const PdfExportSchema = z.object({
-  analysisId: z.number().int().positive(),
+  analysisId: z.coerce.number().int().positive(),
 });
 
 function buildPdfSummaryFromAnalysisRecord(analysis) {
