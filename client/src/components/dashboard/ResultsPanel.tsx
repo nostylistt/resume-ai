@@ -9,6 +9,7 @@ type FeedbackType = "critical" | "warning" | "suggestion";
 
 interface ResultsPanelProps {
   analysisResult: ResumeAnalysisResult | null;
+  analysisId: number | null;
 }
 
 const feedbackOrder: FeedbackType[] = ["critical", "warning", "suggestion"];
@@ -92,6 +93,7 @@ const clampScore = (value: number | null | undefined) => Math.max(0, Math.min(va
 
 export const ResultsPanel = ({
   analysisResult,
+  analysisId,
 }: ResultsPanelProps) => {
   const [activeTab, setActiveTab] = useState<TabId>("skills");
   const [isExportingPdf, setIsExportingPdf] = useState(false);
@@ -198,10 +200,15 @@ export const ResultsPanel = ({
           type="button"
           className="results-export-button"
           onClick={async () => {
+            if (!analysisId) {
+              window.alert("Для експорту PDF потрібен збережений аналіз в історії.");
+              return;
+            }
+
             setIsExportingPdf(true);
 
             try {
-              await exportAnalysisReport(analysisResult);
+              await exportAnalysisReport(analysisId);
             } catch (error) {
               window.alert(
                 error instanceof Error ? error.message : "Не вдалося згенерувати PDF."
@@ -210,7 +217,7 @@ export const ResultsPanel = ({
               setIsExportingPdf(false);
             }
           }}
-          disabled={isExportingPdf}
+          disabled={isExportingPdf || !analysisId}
         >
           <Download size={15} />
           {isExportingPdf ? "Генеруємо PDF..." : "Експорт у PDF"}

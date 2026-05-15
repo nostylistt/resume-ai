@@ -5,11 +5,16 @@ const analysisHistoryController = require('../controllers/analysisHistoryControl
 const writingImproverController = require('../controllers/writingImproverController');
 const pdfExportController = require('../controllers/pdfExportController');
 const { requireAuth } = require('../middleware/requireAuth');
+const {
+  resumeUploadLimiter,
+  writingImproverLimiter,
+  pdfExportLimiter,
+} = require('../middleware/rateLimits');
 
 router.get('/history', requireAuth, analysisHistoryController.listHistory);
 router.get('/history/:analysisId', requireAuth, analysisHistoryController.getHistoryItem);
-router.post('/improve-writing', requireAuth, writingImproverController.improve);
-router.post('/export-pdf', requireAuth, pdfExportController.exportPdf);
-router.post('/upload', requireAuth, resumeController.upload.single('resume'), resumeController.uploadResume);
+router.post('/improve-writing', requireAuth, writingImproverLimiter, writingImproverController.improve);
+router.post('/export-pdf', requireAuth, pdfExportLimiter, pdfExportController.exportPdf);
+router.post('/upload', requireAuth, resumeUploadLimiter, resumeController.upload.single('resume'), resumeController.uploadResume);
 
 module.exports = router;

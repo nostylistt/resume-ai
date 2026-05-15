@@ -1,23 +1,40 @@
 const { z } = require('zod');
 const { generateAnalysisPdf } = require('../services/pdfExportService');
+const { getResumeAnalysisSnapshot } = require('../services/analysisHistoryService');
 
 const PdfExportSchema = z.object({
-  position: z.string().nullable().optional(),
-  analysisMode: z.enum(['full', 'degraded_market', 'no_market_profile']),
-  overallScore: z.number().nullable(),
-  resumeQualityScore: z.number().nullable(),
-  marketFitScore: z.number().nullable(),
-  requiredCoverage: z.number().nullable(),
-  structureScore: z.number().nullable(),
-  atsScore: z.number().nullable(),
-  textScore: z.number().nullable(),
-  matchedRequiredCount: z.number().int().nonnegative(),
-  requiredCount: z.number().int().nonnegative(),
+  analysisId: z.number().int().positive(),
 });
+
+function buildPdfSummaryFromAnalysisRecord(analysis) {
+  const result = analysis?.result || {};
+  const stats = result.skillsComparison?.stats || {};
+
+  return {
+    position: result.marketData?.positionTitle || result.parsedResume?.position || null,
+    analysisMode: result.analysisMode,
+    overallScore: result.overallScore ?? null,
+    resumeQualityScore: result.resumeQualityScore ?? null,
+    marketFitScore: stats.marketFitScore ?? null,
+    requiredCoverage: stats.requiredCoverage ?? null,
+    structureScore: result.structureAnalysis?.score ?? null,
+    atsScore: result.structureAnalysis?.atsScore ?? null,
+    textScore: result.textAnalysis?.score ?? null,
+    matchedRequiredCount: stats.matchedRequiredCount ?? 0,
+    requiredCount: stats.requiredCount ?? 0,
+  };
+}
 
 async function exportPdf(req, res) {
   try {
-    const summary = PdfExportSchema.parse(req.body || {});
+    const { analysisId } = PdfExportSchema.parse(req.body || {});
+    const analysis = await getResumeAnalysisSnapshot(req.user.id, analysisId);
+
+    if (!analysis) {
+      return res.status(404).json({ message: 'Analysis not found.' });
+    }
+
+    const summary = buildPdfSummaryFromAnalysisRecord(analysis);
     const pdfBuffer = await generateAnalysisPdf(summary);
     const fileName = `resumatch-summary-${new Date().toISOString().slice(0, 10)}.pdf`;
 

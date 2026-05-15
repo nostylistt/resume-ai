@@ -1,13 +1,12 @@
 const jwt = require('jsonwebtoken');
+const { extractAuthToken } = require('../config/auth');
 
 function requireAuth(req, res, next) {
-  const authHeader = req.headers.authorization;
+  const token = extractAuthToken(req);
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (!token) {
     return res.status(401).json({ message: 'Authentication required' });
   }
-
-  const token = authHeader.slice('Bearer '.length).trim();
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);

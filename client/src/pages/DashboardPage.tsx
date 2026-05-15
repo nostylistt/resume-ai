@@ -227,7 +227,7 @@ export function DashboardPage() {
           </div>
 
           <div className="dashboard-column results-column">
-            <ResultsPanel analysisResult={analysisResult} />
+            <ResultsPanel analysisResult={analysisResult} analysisId={activeHistoryId} />
           </div>
 
           <div className="dashboard-column">

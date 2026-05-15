@@ -1,6 +1,19 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
+const {
+    AUTH_COOKIE_NAME,
+    buildAuthCookieOptions,
+    buildClearCookieOptions,
+} = require('../config/auth');
+
+function createAuthToken(userId, expiresIn) {
+    return jwt.sign(
+        { id: userId },
+        process.env.JWT_SECRET,
+        { expiresIn }
+    );
+}
 
 const register = async (req, res) => {
     const { email, password, fullName } = req.body;
@@ -23,14 +36,10 @@ const register = async (req, res) => {
             [email, passwordHash, fullName]
         );
 
-        const token = jwt.sign(
-            { id: newUser.rows[0].id },
-            process.env.JWT_SECRET,
-            { expiresIn: '24h' }
-        );
+        const token = createAuthToken(newUser.rows[0].id, '24h');
+        res.cookie(AUTH_COOKIE_NAME, token, buildAuthCookieOptions());
 
         res.status(201).json({
-            token,
             user: newUser.rows[0],
             message: 'Registration successful'
         });
@@ -60,14 +69,10 @@ const login = async (req, res) => {
 
         const expiresIn = rememberMe ? '30d' : '24h';
 
-        const token = jwt.sign(
-            { id: user.id },
-            process.env.JWT_SECRET,
-            { expiresIn }
-        );
+        const token = createAuthToken(user.id, expiresIn);
+        res.cookie(AUTH_COOKIE_NAME, token, buildAuthCookieOptions({ rememberMe }));
 
         res.json({
-            token,
             user: {
                 id: user.id,
                 email: user.email,
@@ -80,6 +85,11 @@ const login = async (req, res) => {
         console.error(err);
         res.status(500).json({ message: 'Server error' });
     }
+};
+
+const logout = async (_req, res) => {
+    res.clearCookie(AUTH_COOKIE_NAME, buildClearCookieOptions());
+    return res.status(204).send();
 };
 
 const getMe = async (req, res) => {
@@ -103,5 +113,6 @@ const getMe = async (req, res) => {
 module.exports = {
     register,
     login,
+    logout,
     getMe
 };

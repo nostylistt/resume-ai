@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import Cookies from 'js-cookie';
+import { API_URL } from '../lib/api';
 
 interface User {
     id: string;
@@ -16,11 +16,9 @@ interface AuthState {
 
     login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
     register: (email: string, password: string, fullName: string) => Promise<void>;
-    logout: () => void;
+    logout: () => Promise<void>;
     checkAuth: () => Promise<void>;
 }
-
-const API_URL = import.meta.env.VITE_API_URL || 'https://resume-ai-back.onrender.com/api';
 
 const getErrorMessage = (error: unknown, fallback: string) => {
     return error instanceof Error ? error.message : fallback;
@@ -38,6 +36,7 @@ export const useAuthStore = create<AuthState>((set) => ({
             const response = await fetch(`${API_URL}/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ email, password, rememberMe }),
             });
 
@@ -47,10 +46,7 @@ export const useAuthStore = create<AuthState>((set) => ({
                 throw new Error(data.message || 'Login failed');
             }
 
-            const { token, user } = data;
-
-            const cookieOptions = rememberMe ? { expires: 30 } : { expires: 1 }; // 30 days or 1 day
-            Cookies.set('token', token, cookieOptions);
+            const { user } = data;
 
             set({ user, isAuthenticated: true, isLoading: false });
         } catch (error) {
@@ -65,6 +61,7 @@ export const useAuthStore = create<AuthState>((set) => ({
             const response = await fetch(`${API_URL}/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ email, password, fullName }),
             });
 
@@ -74,8 +71,7 @@ export const useAuthStore = create<AuthState>((set) => ({
                 throw new Error(data.message || 'Registration failed');
             }
 
-            const { token, user } = data;
-            Cookies.set('token', token, { expires: 1 });
+            const { user } = data;
 
             set({ user, isAuthenticated: true, isLoading: false });
         } catch (error) {
@@ -84,25 +80,25 @@ export const useAuthStore = create<AuthState>((set) => ({
         }
     },
 
-    logout: () => {
-        Cookies.remove('token');
-        set({ user: null, isAuthenticated: false, error: null });
+    logout: async () => {
+        try {
+            await fetch(`${API_URL}/logout`, {
+                method: 'POST',
+                credentials: 'include',
+            });
+        } catch {
+            // Best effort: clear local auth state even if the network request fails.
+        } finally {
+            set({ user: null, isAuthenticated: false, error: null, isLoading: false });
+        }
     },
 
     checkAuth: async () => {
         set({ isLoading: true });
-        const token = Cookies.get('token');
-
-        if (!token) {
-            set({ isLoading: false, isAuthenticated: false, user: null });
-            return;
-        }
 
         try {
             const response = await fetch(`${API_URL}/me`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+                credentials: 'include',
             });
 
             if (!response.ok) {
@@ -112,7 +108,6 @@ export const useAuthStore = create<AuthState>((set) => ({
             const user = await response.json();
             set({ user, isAuthenticated: true, isLoading: false });
         } catch {
-            Cookies.remove('token');
             set({ user: null, isAuthenticated: false, isLoading: false });
         }
     }
