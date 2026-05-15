@@ -25,26 +25,75 @@ const cliches = [
   'відданий своїй справі', 'висока мотивація',
 ];
 
-const clichePatterns = cliches.map((item) =>
-  new RegExp(`(?<![\\w\\u0400-\\u04FF])${item.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w\\u0400-\\u04FF])`, 'i')
-);
-
 const weakPhrases = [
   'responsible for', 'duties included', 'helped with', 'assisted in',
   'was involved in', 'worked on', 'tasked with', 'participated in',
   'was responsible for', 'had experience with', 'completed various tasks',
   'carried out', 'in charge of', 'provided support for', 'executed tasks',
   'відповідав за', 'займався', 'допомагав', 'брав участь',
-  'входило в обов\'язки', 'був відповідальним', 'виконував функції',
-  'залучався до', 'брав участь у розробці', 'виконував обов\'язки',
+  "входило в обов'язки", 'був відповідальним', 'виконував функції',
+  'залучався до', 'брав участь у розробці', "виконував обов'язки",
   'вирішував завдання', 'проводив роботу з',
 ];
 
 const passivePatterns = [
   /\b(was|were|is|are|been|being)\s+[a-z]+ed\b/i,
   /\b(was|were|is|are|been|being)\s+(done|made|built|created|led|managed|developed|executed)\b/i,
-  /\b(був|було|були|була)\s+[а-яєії]+(ний|на|не|ні|тий|та|те|ті|но)\b/i,
+  /\b(був|було|були|була)\s+[а-яєії]+\b/i,
 ];
+
+const ISSUE_RULES = {
+  cliche: {
+    title: 'Прибрати кліше',
+    priority: 'suggestion',
+    priorityClass: 'suggestion',
+    description:
+      'Заміни узагальнені характеристики на конкретну дію, контекст і факт, який можна перевірити.',
+    formula: 'Конкретна дія + контекст + реальний результат. Не вигадуй нові факти або цифри.',
+  },
+  weak_phrase: {
+    title: 'Замінити слабке формулювання',
+    priority: 'suggestion',
+    priorityClass: 'suggestion',
+    description:
+      'Слабкі дієслова і розмиті фрази роблять досвід менш переконливим.',
+    formula: 'Сильне дієслово + що саме зроблено + навіщо/для чого + результат.',
+  },
+  passive_voice: {
+    title: 'Переписати в активній формі',
+    priority: 'warning',
+    priorityClass: 'warning',
+    description:
+      'Активна форма краще показує особистий внесок кандидата у виконану роботу.',
+    formula: 'Активне дієслово + конкретна дія + контекст + результат.',
+  },
+  missing_metrics: {
+    title: 'Додати конкретику замість загальності',
+    priority: 'warning',
+    priorityClass: 'warning',
+    description:
+      'Фраза звучить занадто загально. Її треба зробити конкретнішою, але без вигаданих метрик.',
+    formula: 'Дія + конкретний обсяг/масштаб + практичний результат. Не вигадуй цифри, якщо їх не було в оригіналі.',
+  },
+  long_sentence: {
+    title: 'Скоротити і зробити фразу чіткішою',
+    priority: 'suggestion',
+    priorityClass: 'suggestion',
+    description:
+      'Довге речення важче сканувати. Краще перетворити його на короткий, щільний bullet.',
+    formula: 'Одна думка = одна фраза: дія + контекст + результат.',
+  },
+};
+
+const rewritePriorityOrder = {
+  critical: 0,
+  warning: 1,
+  suggestion: 2,
+};
+
+const clichePatterns = cliches.map((item) =>
+  new RegExp(`(?<![\\w\\u0400-\\u04FF])${item.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w\\u0400-\\u04FF])`, 'i')
+);
 
 function createWordRegex(words) {
   return new RegExp(`(?<![\\w\\u0400-\\u04FF])(${words.join('|')})(?![\\w\\u0400-\\u04FF])`, 'i');
@@ -77,7 +126,7 @@ function scoreBulletStrength(text) {
     hasMetric = true;
   }
 
-  if (/[\$€£]\d+|\d+[km]\b/i.test(normalized)) {
+  if (/[$€£]\d+|\d+[km]\b/i.test(normalized)) {
     score += 2;
     hasMetric = true;
   }
@@ -119,9 +168,54 @@ function parseDate(dateStr) {
   return new Date(parseInt(parts[0], 10), 0);
 }
 
+function buildOpportunityId(parts) {
+  return parts
+    .filter(Boolean)
+    .join('__')
+    .replace(/[^a-zA-Z0-9_\-]/g, '_');
+}
+
+function addRewriteOpportunity(targetsMap, opportunity) {
+  if (!opportunity?.sourceText || opportunity.sourceText.trim().length < 12) {
+    return;
+  }
+
+  const key = `${opportunity.issueType}::${opportunity.sourceText.trim().toLowerCase()}`;
+  if (!targetsMap.has(key)) {
+    targetsMap.set(key, opportunity);
+  }
+}
+
+function buildOpportunity({
+  issueType,
+  sourceText,
+  sourceMessage,
+  section,
+  contextLabel,
+  id,
+}) {
+  const rule = ISSUE_RULES[issueType];
+  if (!rule) return null;
+
+  return {
+    id,
+    issueType,
+    section,
+    priority: rule.priority,
+    priorityClass: rule.priorityClass,
+    title: rule.title,
+    description: rule.description,
+    formula: rule.formula,
+    sourceText: sourceText.trim(),
+    sourceMessage,
+    contextLabel: contextLabel || null,
+  };
+}
+
 function analyzeText(parsedResume) {
   let score = 100;
   const feedback = [];
+  const rewriteTargets = new Map();
 
   const addFeedback = (type, message, penalty, section) => {
     feedback.push({ type, message, section });
@@ -149,6 +243,20 @@ function analyzeText(parsedResume) {
       Math.min(foundCliches.length, 2),
       'summary'
     );
+
+    if (summaryText.trim()) {
+      addRewriteOpportunity(
+        rewriteTargets,
+        buildOpportunity({
+          issueType: 'cliche',
+          sourceText: summaryText,
+          sourceMessage: 'У summary знайдено узагальнені слова-кліше, які треба замінити на фактичний опис.',
+          section: 'summary',
+          contextLabel: 'Summary',
+          id: buildOpportunityId(['summary', 'cliche']),
+        })
+      );
+    }
   }
 
   let totalBullets = 0;
@@ -159,19 +267,33 @@ function analyzeText(parsedResume) {
   let sentenceCount = 0;
   let wordCount = 0;
 
-  experienceItems.forEach((job) => {
+  experienceItems.forEach((job, jobIndex) => {
     const fragments = [];
-    if (job.description) fragments.push(job.description);
-    if (Array.isArray(job.achievements)) fragments.push(...job.achievements);
+    if (job.description) {
+      fragments.push({ text: job.description, kind: 'description', fragmentIndex: 0 });
+    }
+    if (Array.isArray(job.achievements)) {
+      job.achievements.forEach((achievement, achievementIndex) => {
+        fragments.push({ text: achievement, kind: 'achievement', fragmentIndex: achievementIndex });
+      });
+    }
 
-    fragments.forEach((fragment) => {
-      if (!fragment) return;
+    fragments.forEach(({ text, kind, fragmentIndex }) => {
+      if (!text) return;
 
+      const fragment = text.trim();
       const normalized = fragment.toLowerCase();
-      totalBullets++;
-      totalBulletStrength += scoreBulletStrength(fragment);
+      const contextLabel = [job.position, job.company].filter(Boolean).join(' @ ') || 'Experience';
+      const words = fragment.split(/\s+/).filter((word) => word.length > 0);
+      const hasMetric = /\d+/.test(fragment) || /%/.test(fragment) || /[$€£]/.test(fragment);
+      const hasWeakPhrase = weakPhrases.some((item) => normalized.includes(item));
+      const hasPassiveVoice = passivePatterns.some((pattern) => pattern.test(normalized));
+      const fragmentStrength = scoreBulletStrength(fragment);
 
-      if (/\d+/.test(fragment) || /%/.test(fragment) || /[$€]/.test(fragment)) {
+      totalBullets++;
+      totalBulletStrength += fragmentStrength;
+
+      if (hasMetric) {
         bulletsWithMetrics++;
       }
 
@@ -179,15 +301,71 @@ function analyzeText(parsedResume) {
         if (normalized.includes(item)) foundWeak.push(item);
       });
 
-      passivePatterns.forEach((pattern) => {
-        if (pattern.test(normalized)) passiveCount++;
-      });
+      if (hasPassiveVoice) {
+        passiveCount++;
+      }
 
       const sentences = fragment.split(/[.!?\n]+/).filter((item) => item.trim().length > 0);
       sentenceCount += sentences.length;
       sentences.forEach((sentence) => {
         wordCount += sentence.trim().split(/\s+/).filter((word) => word.length > 1).length;
       });
+
+      if (hasWeakPhrase) {
+        addRewriteOpportunity(
+          rewriteTargets,
+          buildOpportunity({
+            issueType: 'weak_phrase',
+            sourceText: fragment,
+            sourceMessage: 'У фрагменті знайдено слабке або розмите формулювання.',
+            section: 'experience',
+            contextLabel,
+            id: buildOpportunityId(['experience', jobIndex, kind, fragmentIndex, 'weak_phrase']),
+          })
+        );
+      }
+
+      if (hasPassiveVoice) {
+        addRewriteOpportunity(
+          rewriteTargets,
+          buildOpportunity({
+            issueType: 'passive_voice',
+            sourceText: fragment,
+            sourceMessage: 'Фрагмент звучить у пасивній формі й приховує особистий внесок кандидата.',
+            section: 'experience',
+            contextLabel,
+            id: buildOpportunityId(['experience', jobIndex, kind, fragmentIndex, 'passive_voice']),
+          })
+        );
+      }
+
+      if (!hasMetric && words.length >= 8 && fragmentStrength <= 3) {
+        addRewriteOpportunity(
+          rewriteTargets,
+          buildOpportunity({
+            issueType: 'missing_metrics',
+            sourceText: fragment,
+            sourceMessage: 'Фраза занадто загальна і не показує конкретику або вимірюваний результат.',
+            section: 'experience',
+            contextLabel,
+            id: buildOpportunityId(['experience', jobIndex, kind, fragmentIndex, 'missing_metrics']),
+          })
+        );
+      }
+
+      if (sentences.some((sentence) => sentence.trim().split(/\s+/).filter((word) => word.length > 0).length > 20)) {
+        addRewriteOpportunity(
+          rewriteTargets,
+          buildOpportunity({
+            issueType: 'long_sentence',
+            sourceText: fragment,
+            sourceMessage: 'Фрагмент задовгий і його важко швидко просканувати.',
+            section: 'experience',
+            contextLabel,
+            id: buildOpportunityId(['experience', jobIndex, kind, fragmentIndex, 'long_sentence']),
+          })
+        );
+      }
     });
   });
 
@@ -235,14 +413,14 @@ function analyzeText(parsedResume) {
     if (avgWords > 20) {
       addFeedback(
         'warning',
-        `Речення занадто довгі (в середньому ${avgWords} слів). Читабельність низька.`,
+        `Речення занадто довгі (в середньому ${avgWords} слів). Читабельність нижча, ніж могла б бути.`,
         8,
         'readability'
       );
     } else if (avgWords > 15) {
       addFeedback(
         'suggestion',
-        `Речення трохи довгуваті (в середньому ${avgWords} слів). Намагайтесь писати лаконічніше.`,
+        `Речення трохи довгуваті (в середньому ${avgWords} слів). Намагайтеся писати лаконічніше.`,
         2,
         'readability'
       );
@@ -321,9 +499,16 @@ function analyzeText(parsedResume) {
     }
   }
 
+  const rewriteOpportunities = Array.from(rewriteTargets.values()).sort((first, second) => {
+    const firstPriority = rewritePriorityOrder[first.priorityClass] ?? 99;
+    const secondPriority = rewritePriorityOrder[second.priorityClass] ?? 99;
+    return firstPriority - secondPriority;
+  });
+
   return {
     score: Math.round(score),
     feedback,
+    rewriteOpportunities,
   };
 }
 

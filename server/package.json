@@ -1,5 +1,6 @@
 {
   "scripts": {
+    "migrate": "node scripts/runMigrations.js",
     "validate": "node validation/runValidation.js"
   },
   "dependencies": {

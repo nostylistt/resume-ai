@@ -6,6 +6,7 @@ const { compareSkills } = require('../services/skillsComparator');
 const { analyzeStructure } = require('../services/structureAnalyzer');
 const { analyzeText } = require('../services/textAnalyzer');
 const { validateResumeContent } = require('../services/resumeContentValidator');
+const { saveResumeAnalysisSnapshot } = require('../services/analysisHistoryService');
 
 const upload = multer({
     storage: multer.memoryStorage(),
@@ -111,7 +112,7 @@ const uploadResume = async (req, res) => {
             skillsComparison
         });
 
-        return res.json({
+        const responsePayload = {
             message: 'File processed successfully',
             format: mimetype.includes('pdf') ? 'pdf' : 'docx',
             resumeQualityScore,
@@ -122,6 +123,22 @@ const uploadResume = async (req, res) => {
             textAnalysis,
             marketData,
             skillsComparison
+        };
+
+        let historyEntry = null;
+        try {
+            historyEntry = await saveResumeAnalysisSnapshot({
+                userId: req.user.id,
+                file: req.file,
+                analysisResult: responsePayload
+            });
+        } catch (historyError) {
+            console.error('[Analysis History] Failed to save snapshot:', historyError);
+        }
+
+        return res.json({
+            ...responsePayload,
+            historyEntry
         });
 
     } catch (error) {

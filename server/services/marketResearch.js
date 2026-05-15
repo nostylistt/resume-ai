@@ -6,6 +6,8 @@ const { getCachedMarketData, setCachedMarketData } = require('./cacheService');
 const { z } = require('zod');
 const { zodResponseFormat } = require('openai/helpers/zod');
 
+const MARKET_PROFILE_CACHE_VERSION = 'ua-v1';
+
 const SkillGroupSchema = z.object({
   technical: z.array(z.string()),
   tools: z.array(z.string())
@@ -15,10 +17,10 @@ const MarketDataSchema = z.object({
   positionTitle: z.string().nullable(),
   requiredSkills: SkillGroupSchema,
   preferredSkills: SkillGroupSchema,
-  typicalExperience: z.string().nullable(),
-  commonRequirements: z.array(z.string()),
-  trendingTechnologies: z.array(z.string()),
-  marketInsights: z.string().nullable()
+  typicalExperience: z.string().nullable().describe('Short experience summary in Ukrainian.'),
+  commonRequirements: z.array(z.string()).describe('Common hiring requirements written in Ukrainian.'),
+  trendingTechnologies: z.array(z.string()).describe('Technology names only; keep original market spelling.'),
+  marketInsights: z.string().nullable().describe('A concise market summary in Ukrainian.')
 });
 
 /**
@@ -31,19 +33,21 @@ const MarketDataSchema = z.object({
  */
 async function fetchMarketRequirements(position, searchKeywords = [], skills = {}) {
   if (!position || typeof position !== 'string' || position.trim().length === 0) {
-    console.warn('marketResearch: позиція не вказана, пропускаємо');
+    console.warn('marketResearch: position is missing, skipping market profile');
     return null;
   }
 
+  const cacheKey = `${MARKET_PROFILE_CACHE_VERSION}|${position}`;
+
   // 1. Cache check
-  const cachedData = getCachedMarketData(position);
+  const cachedData = getCachedMarketData(cacheKey);
   if (cachedData) {
-    console.log(`[Market Research] ⚡ SQLITE CACHE HIT! Завантажено з БД для: "${position}"`);
+    console.log(`[Market Research] SQLITE CACHE HIT for "${position}"`);
     return cachedData;
   }
 
   console.time('[Job Scraping (All Sources)]');
-  const { rawTexts, sources, sourceKeys, dedupeStats } = await scrapeJobListings(searchKeywords, position);
+  const { rawTexts, vacancies, sources, sourceKeys, dedupeStats } = await scrapeJobListings(searchKeywords, position);
   console.timeEnd('[Job Scraping (All Sources)]');
 
   if (rawTexts.length === 0) {
@@ -51,18 +55,20 @@ async function fetchMarketRequirements(position, searchKeywords = [], skills = {
     return null;
   }
 
-  // Combine raw texts and enforce reasonable token limits
   const combinedText = rawTexts
-    .map((t, i) => `--- Vacancy ${i + 1} ---\n${t}`)
+    .map((text, index) => `--- Vacancy ${index + 1} ---\n${text}`)
     .join('\n\n');
 
-  // Debug logging for the LLM input (dev only)
   const debugLogPath = path.join(__dirname, '..', 'market_research_debug.txt');
   if (process.env.NODE_ENV === 'development') {
-    fs.promises.writeFile(debugLogPath, `=== LLM PROMPT (SCRAPED DATA) ===\n\n${combinedText}\n\n=================================\n\n`).catch(() => { });
+    fs.promises
+      .writeFile(
+        debugLogPath,
+        `=== LLM PROMPT (SCRAPED DATA) ===\n\n${combinedText}\n\n=================================\n\n`
+      )
+      .catch(() => {});
   }
 
-  // Normalize aggregated data using LLM
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     console.error('[Market Research] Error: OPENAI_API_KEY is not configured.');
@@ -82,7 +88,9 @@ RULES FOR SKILL EXTRACTION:
 3. If a skill appears in 15% to 50% of vacancies, it is a "preferredSkill".
 4. If a skill appears in <15% of vacancies, IGNORE IT entirely (it is noise).
 5. DO NOT extract soft skills (like communication, teamwork).
-
+6. Write "marketInsights", "typicalExperience", and "commonRequirements" in Ukrainian.
+7. Keep skill names and technology names in their original market spelling, usually English.
+8. "positionTitle" may stay in English if that is how the role appears in the market.
 `;
 
   const MAX_RETRIES = 3;
@@ -97,7 +105,8 @@ RULES FOR SKILL EXTRACTION:
         messages: [
           {
             role: 'system',
-            content: 'You are a job market analyst. Extract and aggregate skill requirements from job listings. Be concise.'
+            content:
+              'You are a job market analyst. Extract and aggregate skill requirements from job listings. Be concise. All narrative output must be in Ukrainian, but skill and technology names must keep their original market spelling.'
           },
           { role: 'user', content: prompt }
         ],
@@ -108,19 +117,19 @@ RULES FOR SKILL EXTRACTION:
 
       const parsed = response.choices[0].message.parsed;
 
-      // Dump parsed LLM output for debugging (dev only)
       if (process.env.NODE_ENV === 'development') {
-        fs.promises.appendFile(debugLogPath, `=== LLM PARSED OUTPUT ===\n\n${JSON.stringify(parsed, null, 2)}\n\n`).catch(() => { });
+        fs.promises
+          .appendFile(debugLogPath, `=== LLM PARSED OUTPUT ===\n\n${JSON.stringify(parsed, null, 2)}\n\n`)
+          .catch(() => {});
       }
 
       if (!parsed) {
         throw new Error('Failed to parse JSON from LLM response');
       }
 
-      const result = normalizeMarketData(parsed, sources, rawTexts.length, dedupeStats, sourceKeys);
+      const result = normalizeMarketData(parsed, sources, rawTexts.length, dedupeStats, sourceKeys, vacancies);
 
-      // Cache save
-      setCachedMarketData(position, result);
+      setCachedMarketData(cacheKey, result);
 
       return result;
 
@@ -137,8 +146,7 @@ RULES FOR SKILL EXTRACTION:
   return null;
 }
 
-// Normalize market data
-function normalizeMarketData(data, sources = [], sampleSize = 0, dedupeStats = null, sourceKeys = []) {
+function normalizeMarketData(data, sources = [], sampleSize = 0, dedupeStats = null, sourceKeys = [], vacancies = []) {
   const normalizeSkillGroup = (group) => ({
     technical: Array.isArray(group?.technical) ? group.technical : [],
     tools: Array.isArray(group?.tools) ? group.tools : [],
@@ -156,11 +164,18 @@ function normalizeMarketData(data, sources = [], sampleSize = 0, dedupeStats = n
     sourceCount: Array.isArray(sourceKeys) ? sourceKeys.length : 0,
     dedupeStats: dedupeStats || { duplicatesRemoved: 0, finalCount: sampleSize },
     sources: Array.isArray(sources) ? sources : [],
+    vacancies: Array.isArray(vacancies)
+      ? vacancies
+          .filter((vacancy) => vacancy?.url && vacancy?.source)
+          .map((vacancy) => ({
+            source: vacancy.source,
+            url: vacancy.url,
+            title: vacancy.title || null,
+          }))
+      : [],
   };
 }
 
 module.exports = {
   fetchMarketRequirements,
 };
-
-

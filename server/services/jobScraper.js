@@ -2,19 +2,18 @@ const cheerio = require('cheerio');
 
 function extractRequirements(html) {
   const $ = cheerio.load(html);
-  const keywords = ['вимог', 'навичк', 'requirements', 'skills', 'expectations', 'очікуєм', 'must have', 'looking for', 'обов\'язково', 'досвід', 'знання'];
+  const keywords = ['вимог', 'навичк', 'requirements', 'skills', 'expectations', 'очікуємо', 'must have', 'looking for', "обов'язково", 'досвід', 'знання'];
 
-  // If this is Work.ua or similar site with a clear description block, we look only in it
   const root = $('#job-description').length > 0 ? $('#job-description') : $('body');
 
   let requirementsText = '';
   let foundSection = false;
 
-  root.find('h1, h2, h3, h4, h5, h6, strong, b').each((i, el) => {
-    const text = $(el).text().toLowerCase();
-    if (keywords.some(kw => text.includes(kw))) {
+  root.find('h1, h2, h3, h4, h5, h6, strong, b').each((index, element) => {
+    const text = $(element).text().toLowerCase();
+    if (keywords.some((keyword) => text.includes(keyword))) {
       foundSection = true;
-      let nextNode = $(el).next();
+      let nextNode = $(element).next();
       let sectionText = '';
 
       while (nextNode.length > 0) {
@@ -22,25 +21,23 @@ function extractRequirements(html) {
         if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tagName)) {
           break;
         }
-        sectionText += nextNode.text().trim() + '\n';
+        sectionText += `${nextNode.text().trim()}\n`;
         nextNode = nextNode.next();
       }
 
       if (sectionText.trim().length > 20) {
-        requirementsText += sectionText + '\n';
+        requirementsText += `${sectionText}\n`;
       }
     }
   });
 
-  // Fallback 1: Extract all lists if no specific headers found or text is too short
   if (!foundSection || requirementsText.trim().length < 50) {
     requirementsText = '';
-    root.find('ul li').each((i, el) => {
-      requirementsText += $(el).text().trim() + '\n';
+    root.find('ul li').each((index, element) => {
+      requirementsText += `${$(element).text().trim()}\n`;
     });
   }
 
-  // Fallback 2: Extract entire body (of the root container)
   if (requirementsText.trim().length < 50) {
     requirementsText = root.text().replace(/\s+/g, ' ');
   }
@@ -48,7 +45,25 @@ function extractRequirements(html) {
   return requirementsText.trim().substring(0, 1500);
 }
 
-// Fetches and parses job listings from DOU.ua based on the search query.
+function normalizeTitle(value) {
+  if (!value || typeof value !== 'string') {
+    return null;
+  }
+
+  const normalized = value.replace(/\s+/g, ' ').trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function extractVacancyTitle(html) {
+  const $ = cheerio.load(html);
+
+  const title =
+    $('h1').first().text() ||
+    $('meta[property="og:title"]').attr('content') ||
+    $('title').first().text();
+
+  return normalizeTitle(title);
+}
 
 async function scrapeDOUListings(searchQuery) {
   try {
@@ -70,36 +85,33 @@ async function scrapeDOUListings(searchQuery) {
     const html = await response.text();
     const $ = cheerio.load(html);
 
-    // Collect vacancy URLs (max 10)
     const vacancyUrls = [];
-    $('a.vt').each((i, el) => {
+    $('a.vt').each((index, element) => {
       if (vacancyUrls.length >= 10) return false;
-      const href = $(el).attr('href');
+      const href = $(element).attr('href');
       if (href) vacancyUrls.push(href);
+      return undefined;
     });
 
     if (vacancyUrls.length === 0) {
-      $('a[href*="/vacancies/"]').each((i, el) => {
+      $('a[href*="/vacancies/"]').each((index, element) => {
         if (vacancyUrls.length >= 10) return false;
-        const href = $(el).attr('href');
+        const href = $(element).attr('href');
         if (href && href.includes('/vacancies/') && !vacancyUrls.includes(href) && /\d+/.test(href)) {
           vacancyUrls.push(href);
         }
+        return undefined;
       });
     }
 
     console.log(`[DOU] Found ${vacancyUrls.length} vacancy URLs`);
-    const details = await Promise.all(
-      vacancyUrls.map(url => scrapeDOUVacancy(url))
-    );
-    return details.filter(item => item.text.length > 50);
+    const details = await Promise.all(vacancyUrls.map((vacancyUrl) => scrapeDOUVacancy(vacancyUrl)));
+    return details.filter((item) => item && item.text.length > 50);
   } catch (error) {
     console.error('[DOU] Scraping error:', error.message);
     return [];
   }
 }
-
-// Scrapes detailed information from a single DOU vacancy page.
 
 async function scrapeDOUVacancy(url) {
   try {
@@ -116,6 +128,7 @@ async function scrapeDOUVacancy(url) {
     return {
       source: 'dou',
       url,
+      title: extractVacancyTitle(html),
       text: extractRequirements(html),
     };
   } catch (error) {
@@ -123,8 +136,6 @@ async function scrapeDOUVacancy(url) {
     return null;
   }
 }
-
-// Fetches and parses job listings from Work.ua based on the search query.
 
 async function scrapeWorkUaListings(searchQuery) {
   try {
@@ -148,8 +159,8 @@ async function scrapeWorkUaListings(searchQuery) {
     const $ = cheerio.load(html);
 
     const vacancyUrls = [];
-    $('a[href^="/jobs/"]').each((i, el) => {
-      const href = $(el).attr('href');
+    $('a[href^="/jobs/"]').each((index, element) => {
+      const href = $(element).attr('href');
       if (href && href.match(/^\/jobs\/\d+\/$/) && !vacancyUrls.includes(href)) {
         vacancyUrls.push(`https://www.work.ua${href}`);
       }
@@ -157,28 +168,28 @@ async function scrapeWorkUaListings(searchQuery) {
 
     console.log(`[Work.ua] Found ${vacancyUrls.length} vacancy URLs`);
 
-    // Scrape details for up to 10 vacancies
-    const detailsPromises = vacancyUrls.slice(0, 10).map(async (vUrl) => {
+    const detailsPromises = vacancyUrls.slice(0, 10).map(async (vacancyUrl) => {
       try {
-        const vResp = await fetch(vUrl, {
+        const vacancyResponse = await fetch(vacancyUrl, {
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
           }
         });
-        if (!vResp.ok) return null;
-        const vHtml = await vResp.text();
+        if (!vacancyResponse.ok) return null;
+        const vacancyHtml = await vacancyResponse.text();
         return {
           source: 'workua',
-          url: vUrl,
-          text: extractRequirements(vHtml),
+          url: vacancyUrl,
+          title: extractVacancyTitle(vacancyHtml),
+          text: extractRequirements(vacancyHtml),
         };
-      } catch (err) {
+      } catch {
         return null;
       }
     });
 
     const details = await Promise.all(detailsPromises);
-    return details.filter(item => item && item.text.length > 50);
+    return details.filter((item) => item && item.text.length > 50);
 
   } catch (error) {
     console.error('[Work.ua] Scraping error:', error.message);
@@ -186,7 +197,17 @@ async function scrapeWorkUaListings(searchQuery) {
   }
 }
 
-// Fetches and parses job listings from Robota.ua using their API.
+function extractRobotaTitle(detailData, searchDoc) {
+  return normalizeTitle(
+    detailData?.title ||
+      detailData?.name ||
+      detailData?.vacancyTitle ||
+      detailData?.vacancy?.title ||
+      searchDoc?.title ||
+      searchDoc?.name ||
+      searchDoc?.vacancyName
+  );
+}
 
 async function scrapeRobotaUaListings(searchQuery) {
   try {
@@ -207,35 +228,38 @@ async function scrapeRobotaUaListings(searchQuery) {
     const searchData = await response.json();
     const documents = searchData.documents || [];
 
-    // Get the first 10 vacancies
-    const ids = documents.slice(0, 10).map(doc => doc.id);
-    console.log(`[Robota.ua] Found ${ids.length} vacancy IDs`);
+    const detailRequests = documents.slice(0, 10).map((document) => ({
+      id: document.id,
+      searchDoc: document,
+    }));
+    console.log(`[Robota.ua] Found ${detailRequests.length} vacancy IDs`);
 
-    const detailsPromises = ids.map(async (id) => {
+    const detailsPromises = detailRequests.map(async ({ id, searchDoc }) => {
       try {
         const detailUrl = `https://api.rabota.ua/vacancy?id=${id}`;
-        const detailResp = await fetch(detailUrl, {
+        const detailResponse = await fetch(detailUrl, {
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             'Accept': 'application/json',
           }
         });
-        if (!detailResp.ok) return null;
-        const detailData = await detailResp.json();
+        if (!detailResponse.ok) return null;
+        const detailData = await detailResponse.json();
 
         const htmlDescription = detailData.description || '';
         return {
           source: 'robota',
-          url: detailUrl,
+          url: detailData.url || detailData.link || detailData.canonicalUrl || detailUrl,
+          title: extractRobotaTitle(detailData, searchDoc),
           text: extractRequirements(htmlDescription),
         };
-      } catch (err) {
+      } catch {
         return null;
       }
     });
 
     const details = await Promise.all(detailsPromises);
-    return details.filter(item => item && item.text.length > 50);
+    return details.filter((item) => item && item.text.length > 50);
 
   } catch (error) {
     console.error('[Robota.ua] Scraping error:', error.message);
@@ -278,8 +302,6 @@ function dedupeVacancyEntries(entries) {
   };
 }
 
-// Aggregates job listings from multiple sources (DOU, Work.ua, Robota.ua).
-
 async function scrapeAllSources(query) {
   const [douEntries, workUaEntries, robotaEntries] = await Promise.all([
     scrapeDOUListings(query),
@@ -316,15 +338,16 @@ async function scrapeJobListings(searchKeywords, position) {
   const queries = [];
   if (position) queries.push(position);
   if (Array.isArray(searchKeywords)) {
-    searchKeywords.forEach(kw => {
-      if (!queries.includes(kw)) queries.push(kw);
+    searchKeywords.forEach((keyword) => {
+      if (!queries.includes(keyword)) queries.push(keyword);
     });
   }
 
   if (queries.length === 0) {
-    console.warn(`[JobScraper] No search queries available`);
+    console.warn('[JobScraper] No search queries available');
     return {
       rawTexts: [],
+      vacancies: [],
       sources: [],
       sourceKeys: [],
       dedupeStats: { duplicatesRemoved: 0, finalCount: 0 }
@@ -337,10 +360,10 @@ async function scrapeJobListings(searchKeywords, position) {
     const { entries, sources, sourceKeys } = await scrapeAllSources(query);
 
     allEntries.push(...entries);
-    sources.forEach(src => {
-      if (!allSources.includes(src)) allSources.push(src);
+    sources.forEach((source) => {
+      if (!allSources.includes(source)) allSources.push(source);
     });
-    sourceKeys.forEach(sourceKey => {
+    sourceKeys.forEach((sourceKey) => {
       if (!allSourceKeys.includes(sourceKey)) allSourceKeys.push(sourceKey);
     });
 
@@ -354,13 +377,21 @@ async function scrapeJobListings(searchKeywords, position) {
   const dedupeResult = dedupeVacancyEntries(allEntries);
   duplicatesRemoved = dedupeResult.duplicatesRemoved;
 
-  const rawTexts = dedupeResult.uniqueEntries.map(entry => entry.text);
-  const sources = [...new Set(dedupeResult.uniqueEntries.map(entry => entry.url).filter(Boolean))];
+  const rawTexts = dedupeResult.uniqueEntries.map((entry) => entry.text);
+  const sources = [...new Set(dedupeResult.uniqueEntries.map((entry) => entry.url).filter(Boolean))];
+  const vacancies = dedupeResult.uniqueEntries
+    .map((entry) => ({
+      source: entry.source,
+      url: entry.url,
+      title: entry.title || null,
+    }))
+    .filter((entry) => entry.url);
 
   console.log(`[JobScraper] Final raw texts extracted: ${rawTexts.length}, duplicates removed: ${duplicatesRemoved}, sources tracking: ${sources.length || allSources.length}`);
 
   return {
     rawTexts,
+    vacancies,
     sources: sources.length > 0 ? sources : allSources,
     sourceKeys: allSourceKeys,
     dedupeStats: {

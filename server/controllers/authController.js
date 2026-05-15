@@ -6,13 +6,13 @@ const register = async (req, res) => {
     const { email, password, fullName } = req.body;
 
     if (!email || !password || !fullName) {
-        return res.status(400).json({ message: 'Всі поля обов’язкові' });
+        return res.status(400).json({ message: 'All fields are required' });
     }
 
     try {
         const userCheck = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
         if (userCheck.rows.length > 0) {
-            return res.status(400).json({ message: 'Користувач з таким email вже існує' });
+            return res.status(400).json({ message: 'A user with this email already exists' });
         }
 
         const salt = await bcrypt.genSalt(10);
@@ -32,12 +32,12 @@ const register = async (req, res) => {
         res.status(201).json({
             token,
             user: newUser.rows[0],
-            message: 'Реєстрація успішна'
+            message: 'Registration successful'
         });
 
     } catch (err) {
         console.error(err);
-        res.status(500).json({ message: 'Помилка сервера' });
+        res.status(500).json({ message: 'Server error' });
     }
 };
 
@@ -48,14 +48,14 @@ const login = async (req, res) => {
         const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
 
         if (result.rows.length === 0) {
-            return res.status(400).json({ message: 'Невірний email або пароль' });
+            return res.status(400).json({ message: 'Invalid email or password' });
         }
 
         const user = result.rows[0];
 
         const isMatch = await bcrypt.compare(password, user.password_hash);
         if (!isMatch) {
-            return res.status(400).json({ message: 'Невірний email або пароль' });
+            return res.status(400).json({ message: 'Invalid email or password' });
         }
 
         const expiresIn = rememberMe ? '30d' : '24h';
@@ -63,7 +63,7 @@ const login = async (req, res) => {
         const token = jwt.sign(
             { id: user.id },
             process.env.JWT_SECRET,
-            { expiresIn: expiresIn }
+            { expiresIn }
         );
 
         res.json({
@@ -78,28 +78,25 @@ const login = async (req, res) => {
 
     } catch (err) {
         console.error(err);
-        res.status(500).json({ message: 'Помилка сервера' });
+        res.status(500).json({ message: 'Server error' });
     }
 };
 
 const getMe = async (req, res) => {
-    const token = req.headers.authorization?.split(' ')[1];
-
-    if (!token) {
-        return res.status(401).json({ message: 'Немає токена' });
-    }
-
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const result = await pool.query('SELECT id, email, full_name, created_at FROM users WHERE id = $1', [decoded.id]);
+        const result = await pool.query(
+            'SELECT id, email, full_name, created_at FROM users WHERE id = $1',
+            [req.user.id]
+        );
 
         if (result.rows.length === 0) {
-            return res.status(404).json({ message: 'Користувача не знайдено' });
+            return res.status(404).json({ message: 'User not found' });
         }
 
         res.json(result.rows[0]);
     } catch (err) {
-        res.status(401).json({ message: 'Токен недійсний' });
+        console.error(err);
+        res.status(500).json({ message: 'Server error' });
     }
 };
 
