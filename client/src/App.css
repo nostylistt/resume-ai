@@ -1889,6 +1889,7 @@ body {
 }
 
 .dashboard-container {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -2144,7 +2145,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background-color: rgba(15, 17, 21, 0.5);
+  background-color: transparent;
   overflow: hidden;
   padding: 0;
 }
