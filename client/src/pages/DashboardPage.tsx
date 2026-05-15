@@ -1,16 +1,21 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { AlertCircle, History, LogOut, User, X } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 import { Button } from "../components/ui/button";
-import { AlertCircle, LogOut, User, History, X } from "lucide-react";
 import { InputPanel } from "../components/dashboard/InputPanel";
 import { ResultsPanel } from "../components/dashboard/ResultsPanel";
 import { InsightsPanel } from "../components/dashboard/InsightsPanel";
 import { AnalysisLoader } from "../components/dashboard/AnalysisLoader";
+import { HistoryPanel } from "../components/dashboard/HistoryPanel";
 import { Logo } from "../components/Logo";
-import type { ResumeAnalysisResult } from "../types/analysis";
+import { API_URL, authorizedFetch } from "../lib/api";
+import type {
+  ResumeAnalysisHistoryItem,
+  ResumeAnalysisHistoryRecord,
+  ResumeAnalysisResult,
+  UploadAnalysisResponse,
+} from "../types/analysis";
 import "../App.css";
-
-const API_URL = import.meta.env.VITE_API_URL || "https://resume-ai-back.onrender.com/api";
 
 export function DashboardPage() {
   const { user, logout } = useAuthStore();
@@ -19,11 +24,59 @@ export function DashboardPage() {
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
+  const [historyItems, setHistoryItems] = useState<ResumeAnalysisHistoryItem[]>([]);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const [isHistoryItemLoading, setIsHistoryItemLoading] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [activeHistoryId, setActiveHistoryId] = useState<number | null>(null);
+
   const canAnalyze = useMemo(() => Boolean(selectedFile) && !isAnalyzing, [selectedFile, isAnalyzing]);
+
+  const handleUnauthorized = useCallback(() => {
+    logout();
+  }, [logout]);
+
+  const loadHistory = useCallback(async () => {
+    if (!user?.id) {
+      return;
+    }
+
+    setIsHistoryLoading(true);
+    setHistoryError(null);
+
+    try {
+      const response = await authorizedFetch(`${API_URL}/resume/history`);
+
+      if (response.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Не вдалося завантажити історію аналізів.");
+      }
+
+      setHistoryItems((data.items || []) as ResumeAnalysisHistoryItem[]);
+    } catch (error) {
+      setHistoryError(
+        error instanceof Error ? error.message : "Не вдалося завантажити історію аналізів."
+      );
+    } finally {
+      setIsHistoryLoading(false);
+    }
+  }, [handleUnauthorized, user?.id]);
+
+  useEffect(() => {
+    void loadHistory();
+  }, [loadHistory]);
 
   const handleFileChange = (file: File | null) => {
     setSelectedFile(file);
     setAnalysisError(null);
+    setActiveHistoryId(null);
   };
 
   const handleAnalyze = async () => {
@@ -39,23 +92,67 @@ export function DashboardPage() {
     setAnalysisResult(null);
 
     try {
-      const response = await fetch(`${API_URL}/resume/upload`, {
+      const response = await authorizedFetch(`${API_URL}/resume/upload`, {
         method: "POST",
         body: formData,
       });
 
-      const data = await response.json();
+      if (response.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+
+      const data = (await response.json()) as Partial<UploadAnalysisResponse> & {
+        message?: string;
+      };
 
       if (!response.ok) {
         throw new Error(data.message || "Не вдалося проаналізувати резюме.");
       }
 
-      setAnalysisResult(data as ResumeAnalysisResult);
+      const result = data as UploadAnalysisResponse;
+      setAnalysisResult(result);
+      setActiveHistoryId(result.historyEntry?.id ?? null);
+      void loadHistory();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Сталася помилка під час аналізу.";
+      const message =
+        error instanceof Error ? error.message : "Сталася помилка під час аналізу.";
       setAnalysisError(message);
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  const handleHistorySelect = async (analysisId: number) => {
+    setIsHistoryItemLoading(true);
+    setHistoryError(null);
+
+    try {
+      const response = await authorizedFetch(`${API_URL}/resume/history/${analysisId}`);
+
+      if (response.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Не вдалося відкрити збережений аналіз.");
+      }
+
+      const analysis = data.analysis as ResumeAnalysisHistoryRecord;
+      setAnalysisResult(analysis.result);
+      setActiveHistoryId(analysis.id);
+      setSelectedFile(null);
+      setAnalysisError(null);
+      setIsHistoryOpen(false);
+    } catch (error) {
+      setHistoryError(
+        error instanceof Error ? error.message : "Не вдалося відкрити збережений аналіз."
+      );
+    } finally {
+      setIsHistoryItemLoading(false);
     }
   };
 
@@ -65,13 +162,17 @@ export function DashboardPage() {
         <div className="dashboard-brand">
           <Logo />
         </div>
-        
+
         <div className="dashboard-nav">
           <nav className="dashboard-nav">
-            <a href="#" className="dash-nav-link">
+            <button
+              type="button"
+              className={`dash-nav-link dash-nav-button ${isHistoryOpen ? "active" : ""}`}
+              onClick={() => setIsHistoryOpen(true)}
+            >
               <History size={14} />
               Історія
-            </a>
+            </button>
           </nav>
           <div className="nav-divider"></div>
           <div className="user-block">
@@ -82,9 +183,9 @@ export function DashboardPage() {
             <div className="user-avatar">
               <User size={16} />
             </div>
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={logout}
               className="logout-btn"
               title="Вийти"
@@ -115,30 +216,37 @@ export function DashboardPage() {
         )}
 
         <div className="dashboard-grid">
-            <div className="dashboard-column">
-                <InputPanel
-                  selectedFile={selectedFile}
-                  isAnalyzing={isAnalyzing}
-                  canAnalyze={canAnalyze}
-                  onFileChange={handleFileChange}
-                  onAnalyze={handleAnalyze}
-                />
-            </div>
+          <div className="dashboard-column">
+            <InputPanel
+              selectedFile={selectedFile}
+              isAnalyzing={isAnalyzing}
+              canAnalyze={canAnalyze}
+              onFileChange={handleFileChange}
+              onAnalyze={handleAnalyze}
+            />
+          </div>
 
-            <div className="dashboard-column results-column">
-                <ResultsPanel
-                  analysisResult={analysisResult}
-                />
-            </div>
+          <div className="dashboard-column results-column">
+            <ResultsPanel analysisResult={analysisResult} />
+          </div>
 
-            <div className="dashboard-column">
-                <InsightsPanel
-                  analysisResult={analysisResult}
-                  isAnalyzing={isAnalyzing}
-                />
-            </div>
+          <div className="dashboard-column">
+            <InsightsPanel analysisResult={analysisResult} isAnalyzing={isAnalyzing} />
+          </div>
         </div>
       </main>
+
+      <HistoryPanel
+        isOpen={isHistoryOpen}
+        items={historyItems}
+        isLoading={isHistoryLoading}
+        isLoadingItem={isHistoryItemLoading}
+        error={historyError}
+        activeAnalysisId={activeHistoryId}
+        onClose={() => setIsHistoryOpen(false)}
+        onRefresh={() => void loadHistory()}
+        onSelect={(analysisId) => void handleHistorySelect(analysisId)}
+      />
 
       {isAnalyzing && <AnalysisLoader />}
     </div>

@@ -44,6 +44,33 @@ export interface StructureAnalysis {
 export interface TextAnalysis {
   score: number;
   feedback: StructureFeedbackItem[];
+  rewriteOpportunities?: RewriteOpportunity[];
+}
+
+export type RewriteIssueType =
+  | "cliche"
+  | "weak_phrase"
+  | "passive_voice"
+  | "missing_metrics"
+  | "long_sentence";
+
+export interface RewriteOpportunity {
+  id: string;
+  issueType: RewriteIssueType;
+  section: string;
+  priority: string;
+  priorityClass: string;
+  title: string;
+  description: string;
+  formula: string;
+  sourceText: string;
+  sourceMessage: string;
+  contextLabel?: string | null;
+}
+
+export interface RewriteSuggestion {
+  text: string;
+  whyItWorks: string;
 }
 
 export interface ParsedResume {
@@ -63,6 +90,7 @@ export interface ParsedResume {
 }
 
 export interface MarketData {
+  vacancies?: MarketVacancy[];
   positionTitle: string | null;
   typicalExperience: string | null;
   commonRequirements: string[];
@@ -77,6 +105,12 @@ export interface MarketData {
   sources?: string[];
 }
 
+export interface MarketVacancy {
+  source: "dou" | "workua" | "robota";
+  url: string;
+  title: string | null;
+}
+
 export interface ResumeAnalysisResult {
   message: string;
   format: string;
@@ -88,4 +122,28 @@ export interface ResumeAnalysisResult {
   textAnalysis: TextAnalysis | null;
   marketData: MarketData | null;
   skillsComparison: SkillsComparison | null;
+}
+
+export interface ResumeAnalysisHistoryItem {
+  id: number;
+  analysisKind: string;
+  sourceType: string;
+  fileName: string | null;
+  fileMimeType: string | null;
+  fileSizeBytes: number | null;
+  targetPosition: string | null;
+  analysisMode: AnalysisMode | null;
+  overallScore: number | null;
+  resumeQualityScore: number | null;
+  marketFitScore: number | null;
+  resultSchemaVersion: number;
+  createdAt: string;
+}
+
+export interface ResumeAnalysisHistoryRecord extends ResumeAnalysisHistoryItem {
+  result: ResumeAnalysisResult;
+}
+
+export interface UploadAnalysisResponse extends ResumeAnalysisResult {
+  historyEntry: ResumeAnalysisHistoryItem | null;
 }
