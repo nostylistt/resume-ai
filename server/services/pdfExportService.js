@@ -447,10 +447,19 @@ function buildHtml(summary) {
 }
 
 async function generateAnalysisPdf(summary) {
+  let executablePath;
+  let args = ['--no-sandbox', '--disable-setuid-sandbox'];
+
+  if (process.env.NODE_ENV === 'production') {
+    const chromium = require('@sparticuz/chromium');
+    executablePath = await chromium.executablePath();
+    args = chromium.args;
+  }
+
   const browser = await puppeteer.launch({
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+    args: args,
+    executablePath: executablePath || undefined,
   });
 
   try {
