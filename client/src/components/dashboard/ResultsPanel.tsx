@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
+import { Download } from "lucide-react";
 import type { ResumeAnalysisResult, StructureFeedbackItem } from "../../types/analysis";
+import { exportAnalysisReport } from "../../lib/exportAnalysisReport";
 import "../../App.css";
 
 type TabId = "skills" | "structure" | "text";
@@ -92,6 +94,7 @@ export const ResultsPanel = ({
   analysisResult,
 }: ResultsPanelProps) => {
   const [activeTab, setActiveTab] = useState<TabId>("skills");
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
 
   const sectionPresence = useMemo(() => {
     const parsedResume = analysisResult?.parsedResume;
@@ -191,6 +194,27 @@ export const ResultsPanel = ({
         <h2 className="panel-title">
           Результати аналізу
         </h2>
+        <button
+          type="button"
+          className="results-export-button"
+          onClick={async () => {
+            setIsExportingPdf(true);
+
+            try {
+              await exportAnalysisReport(analysisResult);
+            } catch (error) {
+              window.alert(
+                error instanceof Error ? error.message : "Не вдалося згенерувати PDF."
+              );
+            } finally {
+              setIsExportingPdf(false);
+            }
+          }}
+          disabled={isExportingPdf}
+        >
+          <Download size={15} />
+          {isExportingPdf ? "Генеруємо PDF..." : "Експорт у PDF"}
+        </button>
       </div>
 
       <div className="gauge-container">
