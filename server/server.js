@@ -18,6 +18,8 @@ if (typeof trustProxyValue === 'string' && trustProxyValue.length > 0) {
 const defaultAllowedOrigins = [
   'http://localhost:5173',
   'http://127.0.0.1:5173',
+  'https://resumatch.fun',
+  'https://www.resumatch.fun',
 ];
 
 const configuredOrigins = (process.env.CLIENT_ORIGIN || process.env.CLIENT_ORIGINS || '')
