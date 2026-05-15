@@ -24,6 +24,18 @@ const registerLimiter = createLimiter({
   message: 'Too many registration attempts. Please try again later.',
 });
 
+const forgotPasswordLimiter = createLimiter({
+  windowMs: 60 * 60 * 1000,
+  limit: 5,
+  message: 'Too many password reset requests. Please try again later.',
+});
+
+const resetPasswordLimiter = createLimiter({
+  windowMs: 60 * 60 * 1000,
+  limit: 10,
+  message: 'Too many password reset attempts. Please try again later.',
+});
+
 const resumeUploadLimiter = createLimiter({
   windowMs: 15 * 60 * 1000,
   limit: 12,
@@ -45,6 +57,8 @@ const pdfExportLimiter = createLimiter({
 module.exports = {
   loginLimiter,
   registerLimiter,
+  forgotPasswordLimiter,
+  resetPasswordLimiter,
   resumeUploadLimiter,
   writingImproverLimiter,
   pdfExportLimiter,

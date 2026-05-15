@@ -12,7 +12,7 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [submitError, setSubmitError] = useState("");
-  
+
   const { login, isLoading, error, isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
@@ -24,11 +24,11 @@ export function LoginPage() {
       navigate(from, { replace: true });
     }
   }, [isAuthenticated, navigate, from]);
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError("");
-    
+
     if (!email || !password) {
       setSubmitError("Будь ласка, заповніть всі поля");
       return;
@@ -36,8 +36,8 @@ export function LoginPage() {
 
     try {
       await login(email, password, rememberMe);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Не вдалося увійти.";
+    } catch (requestError) {
+      const message = requestError instanceof Error ? requestError.message : "Не вдалося увійти.";
       setSubmitError(message);
     }
   };
@@ -58,7 +58,7 @@ export function LoginPage() {
       <div className="auth-container">
         <div className="auth-bg-glow auth-bg-glow-1" />
         <div className="auth-bg-glow auth-bg-glow-2" />
-        
+
         <motion.div
           className="auth-card"
           initial={{ opacity: 0, y: 30 }}
@@ -75,9 +75,9 @@ export function LoginPage() {
               <label className="auth-label">Email</label>
               <div className="auth-input-wrapper">
                 <Mail size={18} className="auth-input-icon" />
-                <input 
-                  type="email" 
-                  className="auth-input" 
+                <input
+                  type="email"
+                  className="auth-input"
                   placeholder="your@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -89,15 +89,15 @@ export function LoginPage() {
               <label className="auth-label">Пароль</label>
               <div className="auth-input-wrapper">
                 <Lock size={18} className="auth-input-icon" />
-                <input 
-                  type={showPassword ? "text" : "password"} 
-                  className="auth-input" 
+                <input
+                  type={showPassword ? "text" : "password"}
+                  className="auth-input"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="auth-password-toggle"
                   onClick={() => setShowPassword(!showPassword)}
                 >
@@ -108,15 +108,15 @@ export function LoginPage() {
 
             <div className="auth-options">
               <label className="auth-checkbox-wrapper">
-                <input 
-                  type="checkbox" 
-                  className="auth-checkbox" 
+                <input
+                  type="checkbox"
+                  className="auth-checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
                 />
                 <span className="auth-checkbox-label">Запам'ятати мене</span>
               </label>
-              <a href="#" className="auth-forgot-link">Забули пароль?</a>
+              <Link to="/forgot-password" className="auth-forgot-link">Забули пароль?</Link>
             </div>
 
             {(error || submitError) && (
@@ -125,9 +125,9 @@ export function LoginPage() {
               </div>
             )}
 
-            <Button 
-              type="submit" 
-              className="btn btn-primary auth-submit-btn" 
+            <Button
+              type="submit"
+              className="btn btn-primary auth-submit-btn"
               disabled={isLoading}
             >
               {isLoading ? (

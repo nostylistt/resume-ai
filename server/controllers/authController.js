@@ -6,6 +6,10 @@ const {
     buildAuthCookieOptions,
     buildClearCookieOptions,
 } = require('../config/auth');
+const {
+    createPasswordResetRequest,
+    resetPassword,
+} = require('../services/passwordResetService');
 
 function createAuthToken(userId, expiresIn) {
     return jwt.sign(
@@ -110,9 +114,55 @@ const getMe = async (req, res) => {
     }
 };
 
+const forgotPassword = async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ message: 'Вкажіть email' });
+    }
+
+    try {
+        await createPasswordResetRequest(email);
+        return res.json({
+            message: 'Якщо акаунт із цим email існує, ми вже надіслали посилання для скидання пароля.',
+        });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: 'Не вдалося обробити запит на скидання пароля' });
+    }
+};
+
+const performPasswordReset = async (req, res) => {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+        return res.status(400).json({ message: 'Потрібні токен і новий пароль' });
+    }
+
+    try {
+        await resetPassword({ token, password });
+        return res.json({ message: 'Пароль успішно змінено' });
+    } catch (err) {
+        if (err instanceof Error) {
+            if (
+                err.message === 'Посилання для скидання пароля недійсне або вже протерміноване' ||
+                err.message === 'Пароль повинен містити щонайменше 8 символів' ||
+                err.message === 'Токен для скидання пароля відсутній'
+            ) {
+                return res.status(400).json({ message: err.message });
+            }
+        }
+
+        console.error(err);
+        return res.status(500).json({ message: 'Не вдалося змінити пароль' });
+    }
+};
+
 module.exports = {
     register,
     login,
     logout,
-    getMe
+    getMe,
+    forgotPassword,
+    performPasswordReset,
 };
