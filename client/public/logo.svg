@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 32" width="160" height="32">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@800&amp;display=swap');
+      .logo-text {
+        font-family: 'Outfit', system-ui, sans-serif;
+        font-size: 24px;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+      }
+      .text-main { fill: #e5e7eb; }
+      .text-highlight { fill: #3b82f6; }
+      .icon { stroke: #3b82f6; }
+    </style>
+  </defs>
+  
+  <g transform="translate(0, 4)">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon">
+      <circle cx="12" cy="12" r="10"/>
+      <circle cx="12" cy="12" r="6"/>
+      <circle cx="12" cy="12" r="2"/>
+    </svg>
+  </g>
+  
+  <text x="32" y="23" class="logo-text">
+    <tspan class="text-main">Resu</tspan><tspan class="text-highlight">match</tspan>
+  </text>
+</svg>

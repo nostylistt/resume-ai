@@ -37,7 +37,7 @@ export function ForgotPasswordPage() {
         throw new Error(data.message || "Не вдалося надіслати лист для скидання пароля.");
       }
 
-      setSuccessMessage(data.message || "Якщо акаунт із цим email існує, ми надіслали посилання для скидання пароля.");
+      setSuccessMessage(data.message || "Перевірте вашу пошту для подальших інструкцій.");
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Не вдалося надіслати лист для скидання пароля.");
     } finally {

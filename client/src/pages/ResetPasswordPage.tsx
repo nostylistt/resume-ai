@@ -59,7 +59,7 @@ export function ResetPasswordPage() {
         throw new Error(data.message || "Не вдалося оновити пароль.");
       }
 
-      setSuccessMessage("Пароль успішно змінено. Зараз перенаправимо вас на сторінку входу.");
+      setSuccessMessage("Пароль успішно змінено. Повертаємо вас на сторінку входу.");
       window.setTimeout(() => {
         navigate("/login", { replace: true });
       }, 1800);
