@@ -1,5 +1,4 @@
 import { Globe, Sparkles, UploadCloud } from "lucide-react";
-import "../../App.css";
 
 interface InputPanelProps {
   selectedFile: File | null;

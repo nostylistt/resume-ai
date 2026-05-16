@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { API_URL } from '../lib/api';
+import { API_URL } from '../../../shared/lib/api';
 
 interface User {
     id: string;

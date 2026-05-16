@@ -1,10 +1,10 @@
-import { Button } from "../components/ui/button";
+import { Button } from "../../../shared/components/ui/button";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff, User, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuthStore } from "../store/useAuthStore";
-import { Logo } from "../components/Logo";
+import { Logo } from "../../../shared/components/Logo";
 
 export function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);

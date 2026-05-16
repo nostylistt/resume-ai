@@ -1,8 +1,7 @@
 import { useMemo, useState } from "react";
 import { Download } from "lucide-react";
-import type { ResumeAnalysisResult, StructureFeedbackItem } from "../../types/analysis";
-import { exportAnalysisReport } from "../../lib/exportAnalysisReport";
-import "../../App.css";
+import type { ResumeAnalysisResult, StructureFeedbackItem } from "../../../shared/types/analysis";
+import { exportAnalysisReport } from "../../../shared/lib/exportAnalysisReport";
 
 type TabId = "skills" | "structure" | "text";
 type FeedbackType = "critical" | "warning" | "suggestion";

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ExternalLink, Lightbulb, PenLine, Sparkles } from "lucide-react";
-import { API_URL, authorizedFetch } from "../../lib/api";
+import { API_URL, authorizedFetch } from "../../../shared/lib/api";
 import type {
   MarketData,
   MarketVacancy,
@@ -8,8 +8,7 @@ import type {
   RewriteOpportunity,
   RewriteSuggestion,
   StructureFeedbackItem,
-} from "../../types/analysis";
-import "../../App.css";
+} from "../../../shared/types/analysis";
 
 interface InsightsPanelProps {
   analysisResult: ResumeAnalysisResult | null;

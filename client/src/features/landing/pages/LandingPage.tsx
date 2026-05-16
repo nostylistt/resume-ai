@@ -1,10 +1,10 @@
-import { Button } from "../components/ui/button";
+import { Button } from "../../../shared/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { Eye, Upload, Search, Sparkles, Target, BarChart3, LayoutList, BookOpen, Lightbulb, Zap, CheckCircle, Globe } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
-import { Header } from "../components/Header";
-import { Logo } from "../components/Logo";
+import { Header } from "../../../shared/components/Header";
+import { Logo } from "../../../shared/components/Logo";
 
 export function LandingPage() {
   const [activeFeature, setActiveFeature] = useState(0);

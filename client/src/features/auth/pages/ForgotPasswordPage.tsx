@@ -1,10 +1,10 @@
-import { Button } from "../components/ui/button";
+import { Button } from "../../../shared/components/ui/button";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Mail, Loader2, ArrowLeft } from "lucide-react";
 import { useState } from "react";
-import { Logo } from "../components/Logo";
-import { API_URL } from "../lib/api";
+import { Logo } from "../../../shared/components/Logo";
+import { API_URL } from "../../../shared/lib/api";
 
 export function ForgotPasswordPage() {
   const [email, setEmail] = useState("");

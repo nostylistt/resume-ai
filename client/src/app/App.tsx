@@ -1,14 +1,14 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect } from "react";
-import { LandingPage } from "./pages/LandingPage";
-import { LoginPage } from "./pages/LoginPage";
-import { RegisterPage } from "./pages/RegisterPage";
-import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
-import { ResetPasswordPage } from "./pages/ResetPasswordPage";
-import { DashboardPage } from "./pages/DashboardPage";
-import { ProtectedRoute } from "./components/ProtectedRoute";
-import { useAuthStore } from "./store/useAuthStore";
-import "./App.css";
+import { LandingPage } from "../features/landing/pages/LandingPage";
+import { LoginPage } from "../features/auth/pages/LoginPage";
+import { RegisterPage } from "../features/auth/pages/RegisterPage";
+import { ForgotPasswordPage } from "../features/auth/pages/ForgotPasswordPage";
+import { ResetPasswordPage } from "../features/auth/pages/ResetPasswordPage";
+import { DashboardPage } from "../features/dashboard/pages/DashboardPage";
+import { ProtectedRoute } from "../shared/components/ProtectedRoute";
+import { useAuthStore } from "../features/auth/store/useAuthStore";
+import "../App.css";
 
 export default function App() {
   const { checkAuth } = useAuthStore();

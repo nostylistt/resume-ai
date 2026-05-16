@@ -1,10 +1,10 @@
-import { Button } from "../components/ui/button";
+import { Button } from "../../../shared/components/ui/button";
 import { motion } from "framer-motion";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Logo } from "../components/Logo";
-import { API_URL } from "../lib/api";
+import { Logo } from "../../../shared/components/Logo";
+import { API_URL } from "../../../shared/lib/api";
 
 export function ResetPasswordPage() {
   const [searchParams] = useSearchParams();

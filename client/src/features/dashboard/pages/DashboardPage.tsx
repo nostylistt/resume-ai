@@ -1,21 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertCircle, History, LogOut, User, X } from "lucide-react";
-import { useAuthStore } from "../store/useAuthStore";
-import { Button } from "../components/ui/button";
-import { InputPanel } from "../components/dashboard/InputPanel";
-import { ResultsPanel } from "../components/dashboard/ResultsPanel";
-import { InsightsPanel } from "../components/dashboard/InsightsPanel";
-import { AnalysisLoader } from "../components/dashboard/AnalysisLoader";
-import { HistoryPanel } from "../components/dashboard/HistoryPanel";
-import { Logo } from "../components/Logo";
-import { API_URL, authorizedFetch } from "../lib/api";
+import { useAuthStore } from "../../auth/store/useAuthStore";
+import { Button } from "../../../shared/components/ui/button";
+import { InputPanel } from "../components/InputPanel";
+import { ResultsPanel } from "../components/ResultsPanel";
+import { InsightsPanel } from "../components/InsightsPanel";
+import { AnalysisLoader } from "../components/AnalysisLoader";
+import { HistoryPanel } from "../components/HistoryPanel";
+import { Logo } from "../../../shared/components/Logo";
+import { API_URL, authorizedFetch } from "../../../shared/lib/api";
 import type {
   ResumeAnalysisHistoryItem,
   ResumeAnalysisHistoryRecord,
   ResumeAnalysisResult,
   UploadAnalysisResponse,
-} from "../types/analysis";
-import "../App.css";
+} from "../../../shared/types/analysis";
 
 export function DashboardPage() {
   const { user, logout } = useAuthStore();

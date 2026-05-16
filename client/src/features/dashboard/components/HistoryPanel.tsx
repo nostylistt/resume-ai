@@ -1,7 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Clock3, FileText, RefreshCw, Target, TrendingUp, X } from "lucide-react";
-import type { ResumeAnalysisHistoryItem } from "../../types/analysis";
-import "../../App.css";
+import type { ResumeAnalysisHistoryItem } from "../../../shared/types/analysis";
 
 interface HistoryPanelProps {
   isOpen: boolean;
