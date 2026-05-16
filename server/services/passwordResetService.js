@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const pool = require('../config/db');
+const { env } = require('../config/env');
 const { sendPasswordResetEmail } = require('./mailService');
 
 const PASSWORD_RESET_TOKEN_TTL_MINUTES = 30;
@@ -10,10 +11,7 @@ function hashResetToken(token) {
 }
 
 function getAppBaseUrl() {
-  const configuredOrigin = (process.env.APP_URL || process.env.CLIENT_ORIGIN || process.env.CLIENT_ORIGINS || '')
-    .split(',')
-    .map((origin) => origin.trim())
-    .find(Boolean);
+  const configuredOrigin = env.appUrl || env.clientOrigins[0] || '';
 
   return configuredOrigin || 'http://localhost:5173';
 }

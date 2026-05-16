@@ -1,8 +1,9 @@
 const { Resend } = require('resend');
+const { env } = require('../config/env');
 
-const resendApiKey = process.env.RESEND_API_KEY || '';
-const emailFrom = process.env.EMAIL_FROM || '';
-const isProduction = process.env.NODE_ENV === 'production';
+const resendApiKey = env.email.resendApiKey;
+const emailFrom = env.email.from;
+const isProduction = env.isProduction;
 
 let resendClient = null;
 

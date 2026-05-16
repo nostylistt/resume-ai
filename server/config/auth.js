@@ -1,3 +1,5 @@
+const { env } = require('./env');
+
 const AUTH_COOKIE_NAME = 'resumatch_auth';
 
 function normalizeSameSite(value) {
@@ -9,14 +11,14 @@ function normalizeSameSite(value) {
 }
 
 function isSecureCookie(sameSite) {
-  if (process.env.AUTH_COOKIE_SECURE === 'true') return true;
-  if (process.env.AUTH_COOKIE_SECURE === 'false') return false;
+  if (env.authCookie.secure === 'true') return true;
+  if (env.authCookie.secure === 'false') return false;
   if (sameSite === 'none') return true;
-  return process.env.NODE_ENV === 'production';
+  return env.isProduction;
 }
 
 function buildAuthCookieOptions({ rememberMe = false } = {}) {
-  const sameSite = normalizeSameSite(process.env.AUTH_COOKIE_SAME_SITE);
+  const sameSite = normalizeSameSite(env.authCookie.sameSite);
   const secure = isSecureCookie(sameSite);
   const maxAge = rememberMe ? 30 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
 
@@ -30,7 +32,7 @@ function buildAuthCookieOptions({ rememberMe = false } = {}) {
 }
 
 function buildClearCookieOptions() {
-  const sameSite = normalizeSameSite(process.env.AUTH_COOKIE_SAME_SITE);
+  const sameSite = normalizeSameSite(env.authCookie.sameSite);
   const secure = isSecureCookie(sameSite);
 
   return {

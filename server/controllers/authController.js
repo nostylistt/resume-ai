@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
+const { env } = require('../config/env');
 const {
     AUTH_COOKIE_NAME,
     buildAuthCookieOptions,
@@ -14,7 +15,7 @@ const {
 function createAuthToken(userId, expiresIn) {
     return jwt.sign(
         { id: userId },
-        process.env.JWT_SECRET,
+        env.jwtSecret,
         { expiresIn }
     );
 }
