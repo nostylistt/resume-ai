@@ -91,17 +91,13 @@ const buildFallbackWritingTip = (feedback: StructureFeedbackItem): WritingTip =>
       priorityClass: priority.className,
       description:
         "Замість загальних характеристик краще показати конкретну дію, контекст і результат.",
-      template: "Не “командний гравець”, а “співпрацював з X, щоб досягти Y результату”.",
+      template: "Не загальна риса, а конкретна дія та фактичний результат.",
       sourceMessage: message,
       opportunity: null,
     };
   }
 
-  if (
-    normalized.includes("цифр") ||
-    normalized.includes("метрик") ||
-    normalized.includes("вплив")
-  ) {
+  if (normalized.includes("цифр") || normalized.includes("метрик") || normalized.includes("вплив")) {
     return {
       id: `feedback-${feedback.section}-metrics`,
       title: "Додати вимірюваний результат",
@@ -110,7 +106,7 @@ const buildFallbackWritingTip = (feedback: StructureFeedbackItem): WritingTip =>
       priorityClass: priority.className,
       description:
         "Сильний bullet має показувати не тільки дію, а й вимірюваний ефект для продукту або команди.",
-      template: "Дія + що саме зроблено + результат у цифрах.",
+      template: "Дія + що саме зроблено + практичний результат.",
       sourceMessage: message,
       opportunity: null,
     };
@@ -169,7 +165,7 @@ const buildFallbackWritingTip = (feedback: StructureFeedbackItem): WritingTip =>
     priorityClass: priority.className,
     description:
       "Формулювання має чітко показувати дію кандидата, контекст задачі та практичний результат.",
-    template: "Сильне дієслово + задача + технологія/контекст + результат.",
+    template: "Сильне дієслово + задача + контекст + результат.",
     sourceMessage: message,
     opportunity: null,
   };
@@ -177,10 +173,11 @@ const buildFallbackWritingTip = (feedback: StructureFeedbackItem): WritingTip =>
 
 const buildWritingTips = (
   feedback: StructureFeedbackItem[] = [],
-  opportunities: RewriteOpportunity[] = []
+  opportunities: RewriteOpportunity[] = [],
+  options: { dedupeOpportunities?: boolean } = {}
 ) => {
   if (opportunities.length > 0) {
-    return opportunities.map((opportunity) => ({
+    const tips: WritingTip[] = opportunities.map((opportunity) => ({
       id: opportunity.id,
       title: opportunity.title,
       section: formatSection(opportunity.section),
@@ -191,6 +188,24 @@ const buildWritingTips = (
       sourceMessage: opportunity.sourceMessage,
       opportunity,
     }));
+
+    if (!options.dedupeOpportunities) {
+      return tips;
+    }
+
+    const uniqueTips = new Map<string, WritingTip>();
+    tips.forEach((tip) => {
+      const key = `${tip.title}__${tip.priorityClass}__${tip.section}`;
+      if (!uniqueTips.has(key)) {
+        uniqueTips.set(key, {
+          ...tip,
+          id: key,
+          opportunity: null,
+        });
+      }
+    });
+
+    return Array.from(uniqueTips.values());
   }
 
   const sortedFeedback = [...feedback].sort(
@@ -236,7 +251,7 @@ export const InsightsPanel = ({
 
         <div className="insights-empty-state">
           <div className="empty-state-kicker">Після аналізу</div>
-          <h3 className="empty-state-title">Тут з’являться практичні рекомендації</h3>
+          <h3 className="empty-state-title">Тут з'являться практичні рекомендації</h3>
           <p className="empty-state-desc">
             Система підсумує ринковий контекст і покаже, як покращити текст резюме.
           </p>
@@ -273,9 +288,11 @@ export const InsightsPanel = ({
   const marketInsight =
     marketData?.marketInsights || buildFallbackMarketInsight(marketData);
   const opportunities = analysisResult?.textAnalysis?.rewriteOpportunities || [];
+  const hasRewriteResults = Object.keys(rewriteResultsById).length > 0;
   const writingTips = buildWritingTips(
     analysisResult?.textAnalysis?.feedback || [],
-    opportunities
+    opportunities,
+    { dedupeOpportunities: !hasRewriteResults }
   );
   const vacancies = marketData?.vacancies || [];
   const visibleVacancies = showAllVacancies ? vacancies : vacancies.slice(0, 3);
@@ -476,21 +493,22 @@ export const InsightsPanel = ({
               </p>
             </div>
           )}
+
           {opportunities.length > 0 && (
-          <button
-            type="button"
-            className="writing-improve-button"
-            onClick={() => void handleImproveAllWriting()}
-            disabled={isImprovingAll}
-          >
-            <Sparkles size={14} />
-            {isImprovingAll
-              ? "Покращуємо всі формулювання..."
-              : Object.keys(rewriteResultsById).length > 0
-                ? "Оновити всі варіанти"
-                : "Покращити формулювання"}
-          </button>
-        )}
+            <button
+              type="button"
+              className="writing-improve-button"
+              onClick={() => void handleImproveAllWriting()}
+              disabled={isImprovingAll}
+            >
+              <Sparkles size={14} />
+              {isImprovingAll
+                ? "Покращуємо всі формулювання..."
+                : hasRewriteResults
+                  ? "Оновити всі варіанти"
+                  : "Покращити формулювання"}
+            </button>
+          )}
         </div>
       </div>
     </div>

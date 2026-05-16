@@ -158,8 +158,8 @@ export function DashboardPage() {
 
   return (
     <div className="dashboard-container">
-      <div className="auth-bg-glow auth-bg-glow-1" style={{ opacity: 0.3 }} />
-      <div className="auth-bg-glow auth-bg-glow-2" style={{ opacity: 0.3 }} />
+      <div className="auth-bg-glow auth-bg-glow-1"/>
+      <div className="auth-bg-glow auth-bg-glow-2"/>
       
       <header className="dashboard-header">
         <div className="dashboard-brand">

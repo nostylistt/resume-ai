@@ -3353,12 +3353,13 @@ body {
   justify-content: center;
   gap: 8px;
   width: 100%;
+  height: 50px;
   padding: 11px 14px;
   border: 1px solid rgba(96, 165, 250, 0.2);
   border-radius: 10px;
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.16), rgba(59, 130, 246, 0.08));
   color: #dbeafe;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -3467,6 +3468,16 @@ body {
 .writing-tip-block.problem {
   background-color: rgba(251, 191, 36, 0.045);
   border-color: rgba(251, 191, 36, 0.12);
+}
+
+.writing-tip-block.context {
+  background-color: rgba(59, 130, 246, 0.06);
+  border-color: rgba(59, 130, 246, 0.14);
+}
+
+.writing-tip-block.source {
+  background-color: rgba(248, 113, 113, 0.05);
+  border-color: rgba(248, 113, 113, 0.12);
 }
 
 .writing-tip-block.formula {

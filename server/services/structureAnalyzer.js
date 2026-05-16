@@ -7,6 +7,8 @@
  * 4. Text volume and readability (Chunking)
  */
 
+const { inferResumeSeniority } = require('./seniority');
+
 function analyzeStructure(parsedResume, rawText = '') {
   let score = 100;
   const feedback = [];
@@ -86,33 +88,7 @@ function analyzeStructure(parsedResume, rawText = '') {
     return new Date(parseInt(parts[0]), 0);
   };
 
-  const detectSeniority = (resume) => {
-    if (!resume.experience || resume.experience.length === 0) return 'junior';
-
-    let totalMonths = 0;
-    let validJobs = 0;
-
-    resume.experience.forEach(job => {
-      const start = parseDate(job.startDate);
-      let end = parseDate(job.endDate);
-
-      if (!end && start) end = new Date();
-
-      if (start && end && end >= start) {
-        totalMonths += (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
-        validJobs++;
-      }
-    });
-
-    if (validJobs === 0) return 'unknown';
-
-    const totalYears = totalMonths / 12;
-    if (totalYears < 2) return 'junior';
-    if (totalYears < 5) return 'mid';
-    return 'senior';
-  };
-
-  const seniority = detectSeniority(parsedResume);
+  const seniority = inferResumeSeniority(parsedResume) || 'unknown';
   const weights = {
     junior: { education: 1.5, experience: 0.7, summary: 1.0, contact: 1.0, skills: 1.0 },
     mid: { education: 1.0, experience: 1.0, summary: 1.0, contact: 1.0, skills: 1.0 },

@@ -1,6 +1,10 @@
 const OpenAI = require('openai');
 const { z } = require('zod');
 const { zodResponseFormat } = require('openai/helpers/zod');
+const {
+  explainResumeSeniority,
+  enrichPositionWithSeniority,
+} = require('./seniority');
 
 // ZOD normalizied schema for LLM (structured outputs)
 const ResumeSchema = z.object({
@@ -127,8 +131,34 @@ async function extractSections(rawText) {
 
 // Normalization and validation
 function normalizeResult(data) {
+  const rawExperience = Array.isArray(data.experience) ? data.experience : [];
+  const seniorityDecision = explainResumeSeniority(
+    {
+      position: data.position || '',
+      experience: rawExperience,
+    },
+    {
+      source: 'section_extractor',
+      log: false,
+    }
+  );
+  const normalizedPosition = enrichPositionWithSeniority(
+    data.position || null,
+    seniorityDecision.selectedSeniority
+  );
+  explainResumeSeniority(
+    {
+      position: data.position || '',
+      experience: rawExperience,
+    },
+    {
+      source: 'section_extractor',
+      finalPosition: normalizedPosition,
+    }
+  );
+
   return {
-    position: data.position || null,
+    position: normalizedPosition,
     contact: {
       fullName: data.contact?.fullName || null,
       email: data.contact?.email || null,
@@ -140,7 +170,7 @@ function normalizeResult(data) {
       telegram: data.contact?.telegram || null,
     },
     summary: data.summary || null,
-    experience: Array.isArray(data.experience) ? data.experience.map(exp => ({
+    experience: rawExperience.map(exp => ({
       company: exp.company || '',
       position: exp.position || '',
       startDate: exp.startDate || null,
@@ -149,7 +179,7 @@ function normalizeResult(data) {
       location: exp.location || null,
       description: exp.description || null,
       achievements: Array.isArray(exp.achievements) ? exp.achievements : [],
-    })) : [],
+    })),
     education: Array.isArray(data.education) ? data.education.map(edu => ({
       institution: edu.institution || '',
       degree: edu.degree || null,
