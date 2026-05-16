@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from "react-router-dom";
 import { useEffect } from "react";
 import { LandingPage } from "../features/landing/pages/LandingPage";
 import { LoginPage } from "../features/auth/pages/LoginPage";
@@ -10,6 +10,16 @@ import { ProtectedRoute } from "../shared/components/ProtectedRoute";
 import { useAuthStore } from "../features/auth/store/useAuthStore";
 import "../App.css";
 
+function RootEntryPage() {
+  const [searchParams] = useSearchParams();
+
+  if (searchParams.get("resetToken") || searchParams.get("token")) {
+    return <ResetPasswordPage />;
+  }
+
+  return <LandingPage />;
+}
+
 export default function App() {
   const { checkAuth } = useAuthStore();
 
@@ -20,7 +30,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<LandingPage />} />
+        <Route path="/" element={<RootEntryPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />

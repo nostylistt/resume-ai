@@ -9,7 +9,10 @@ import { API_URL } from "../../../shared/lib/api";
 export function ResetPasswordPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const token = useMemo(() => searchParams.get("token") || "", [searchParams]);
+  const token = useMemo(
+    () => searchParams.get("token") || searchParams.get("resetToken") || "",
+    [searchParams]
+  );
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
