@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useRef, useState } from "react";
-import { Eye, EyeOff, Lock, X } from "lucide-react";
+import { Eye, EyeOff, Lock } from "lucide-react";
 import { Button } from "../../../shared/components/ui/button";
 import { API_URL, authorizedFetch } from "../../../shared/lib/api";
 import { useAuthStore } from "../../auth/store/useAuthStore";
