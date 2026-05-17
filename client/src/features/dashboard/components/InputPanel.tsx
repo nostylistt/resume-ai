@@ -25,7 +25,10 @@ export const InputPanel = ({
           type="file"
           accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
           style={{ display: "none" }}
-          onChange={(event) => onFileChange(event.target.files?.[0] || null)}
+          onChange={(event) => {
+            onFileChange(event.target.files?.[0] || null);
+            event.currentTarget.value = "";
+          }}
         />
 
         <div className="upload-icon-wrapper">
@@ -36,15 +39,14 @@ export const InputPanel = ({
           {selectedFile ? "Файл обрано" : "Завантажити резюме"}
         </h3>
         <p className="upload-desc">
-          {selectedFile ? selectedFile.name : "PDF, DOCX до 10MB"}
+          {selectedFile ? selectedFile.name : "PDF, DOC, DOCX до 10 МБ"}
         </p>
       </label>
 
       <div className="auto-detect-info">
         <Globe size={16} className="text-blue" />
         <span>
-          Позицію та вимоги ринку визначимо автоматично з DOU, Work.ua та
-          Robota.ua
+          Позицію та вимоги ринку визначимо автоматично з DOU, Work.ua та Robota.ua
         </span>
       </div>
 

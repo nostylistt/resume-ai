@@ -20,17 +20,21 @@ function createAuthToken(userId, expiresIn) {
     );
 }
 
+function validatePassword(value) {
+    return String(value || '').trim().length >= 8;
+}
+
 const register = async (req, res) => {
     const { email, password, fullName } = req.body;
 
     if (!email || !password || !fullName) {
-        return res.status(400).json({ message: 'All fields are required' });
+        return res.status(400).json({ message: 'Всі поля обов\'язкові' });
     }
 
     try {
         const userCheck = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
         if (userCheck.rows.length > 0) {
-            return res.status(400).json({ message: 'A user with this email already exists' });
+            return res.status(400).json({ message: 'Користувач з цим email вже існує' });
         }
 
         const salt = await bcrypt.genSalt(10);
@@ -46,12 +50,12 @@ const register = async (req, res) => {
 
         res.status(201).json({
             user: newUser.rows[0],
-            message: 'Registration successful'
+            message: 'Реєстрація успішна'
         });
 
     } catch (err) {
         console.error(err);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: 'Помилка сервера' });
     }
 };
 
@@ -62,14 +66,14 @@ const login = async (req, res) => {
         const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
 
         if (result.rows.length === 0) {
-            return res.status(400).json({ message: 'Invalid email or password' });
+            return res.status(400).json({ message: 'Невірний email або пароль' });
         }
 
         const user = result.rows[0];
 
         const isMatch = await bcrypt.compare(password, user.password_hash);
         if (!isMatch) {
-            return res.status(400).json({ message: 'Invalid email or password' });
+            return res.status(400).json({ message: 'Невірний email або пароль' });
         }
 
         const expiresIn = rememberMe ? '30d' : '24h';
@@ -88,7 +92,7 @@ const login = async (req, res) => {
 
     } catch (err) {
         console.error(err);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: 'Помилка сервера' });
     }
 };
 
@@ -105,13 +109,13 @@ const getMe = async (req, res) => {
         );
 
         if (result.rows.length === 0) {
-            return res.status(404).json({ message: 'User not found' });
+            return res.status(404).json({ message: 'Користувача не знайдено' });
         }
 
         res.json(result.rows[0]);
     } catch (err) {
         console.error(err);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: 'Помилка сервера' });
     }
 };
 
@@ -159,6 +163,57 @@ const performPasswordReset = async (req, res) => {
     }
 };
 
+const changePassword = async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: 'Потрібні поточний і новий пароль' });
+    }
+
+    if (!validatePassword(newPassword)) {
+        return res.status(400).json({ message: 'Новий пароль має містити щонайменше 8 символів' });
+    }
+
+    try {
+        const result = await pool.query(
+            'SELECT id, password_hash FROM users WHERE id = $1',
+            [req.user.id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Користувача не знайдено' });
+        }
+
+        const user = result.rows[0];
+        const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password_hash);
+
+        if (!isCurrentPasswordValid) {
+            return res.status(400).json({ message: 'Поточний пароль невірний' });
+        }
+
+        const isSamePassword = await bcrypt.compare(newPassword, user.password_hash);
+
+        if (isSamePassword) {
+            return res.status(400).json({ message: 'Новий пароль має відрізнятися від поточного' });
+        }
+
+        const passwordHash = await bcrypt.hash(newPassword, 10);
+
+        await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [passwordHash, user.id]);
+        await pool.query(
+            'UPDATE password_reset_tokens SET used_at = NOW() WHERE user_id = $1 AND used_at IS NULL',
+            [user.id]
+        );
+
+        res.clearCookie(AUTH_COOKIE_NAME, buildClearCookieOptions());
+
+        return res.json({ message: 'Пароль успішно змінено. Увійдіть з новим паролем.' });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: 'Не вдалося змінити пароль' });
+    }
+};
+
 module.exports = {
     register,
     login,
@@ -166,4 +221,5 @@ module.exports = {
     getMe,
     forgotPassword,
     performPasswordReset,
+    changePassword,
 };

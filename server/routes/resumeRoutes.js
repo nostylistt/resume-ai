@@ -15,6 +15,6 @@ router.get('/history', requireAuth, analysisHistoryController.listHistory);
 router.get('/history/:analysisId', requireAuth, analysisHistoryController.getHistoryItem);
 router.post('/improve-writing', requireAuth, writingImproverLimiter, writingImproverController.improve);
 router.post('/export-pdf', requireAuth, pdfExportLimiter, pdfExportController.exportPdf);
-router.post('/upload', requireAuth, resumeUploadLimiter, resumeController.upload.single('resume'), resumeController.uploadResume);
+router.post('/upload', requireAuth, resumeUploadLimiter, resumeController.handleResumeUpload, resumeController.uploadResume);
 
 module.exports = router;

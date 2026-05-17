@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertCircle, History, LogOut, User, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AlertCircle, ChevronDown, History, LogOut, LockKeyhole, User, X } from "lucide-react";
 import { useAuthStore } from "../../auth/store/useAuthStore";
-import { Button } from "../../../shared/components/ui/button";
 import { InputPanel } from "../components/InputPanel";
 import { ResultsPanel } from "../components/ResultsPanel";
 import { InsightsPanel } from "../components/InsightsPanel";
 import { AnalysisLoader } from "../components/AnalysisLoader";
 import { HistoryPanel } from "../components/HistoryPanel";
+import { ChangePasswordModal } from "../components/ChangePasswordModal";
 import { Logo } from "../../../shared/components/Logo";
 import { API_URL, authorizedFetch } from "../../../shared/lib/api";
 import type {
@@ -16,8 +16,12 @@ import type {
   UploadAnalysisResponse,
 } from "../../../shared/types/analysis";
 
+const MAX_RESUME_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+
 export function DashboardPage() {
   const { user, logout } = useAuthStore();
+  const profileMenuRef = useRef<HTMLDivElement | null>(null);
+
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [analysisResult, setAnalysisResult] = useState<ResumeAnalysisResult | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
@@ -25,6 +29,8 @@ export function DashboardPage() {
 
   const [historyItems, setHistoryItems] = useState<ResumeAnalysisHistoryItem[]>([]);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isSecurityOpen, setIsSecurityOpen] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [isHistoryItemLoading, setIsHistoryItemLoading] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
@@ -33,8 +39,30 @@ export function DashboardPage() {
   const canAnalyze = useMemo(() => Boolean(selectedFile) && !isAnalyzing, [selectedFile, isAnalyzing]);
 
   const handleUnauthorized = useCallback(() => {
-    logout();
+    void logout();
   }, [logout]);
+
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!profileMenuRef.current?.contains(event.target as Node)) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsProfileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
 
   const loadHistory = useCallback(async () => {
     if (!user?.id) {
@@ -73,6 +101,13 @@ export function DashboardPage() {
   }, [loadHistory]);
 
   const handleFileChange = (file: File | null) => {
+    if (file && file.size > MAX_RESUME_FILE_SIZE_BYTES) {
+      setSelectedFile(null);
+      setActiveHistoryId(null);
+      setAnalysisError("Файл завеликий. Максимальний розмір резюме — 10 МБ.");
+      return;
+    }
+
     setSelectedFile(file);
     setAnalysisError(null);
     setActiveHistoryId(null);
@@ -114,8 +149,7 @@ export function DashboardPage() {
       setActiveHistoryId(result.historyEntry?.id ?? null);
       void loadHistory();
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Сталася помилка під час аналізу.";
+      const message = error instanceof Error ? error.message : "Сталася помилка під час аналізу.";
       setAnalysisError(message);
     } finally {
       setIsAnalyzing(false);
@@ -155,11 +189,21 @@ export function DashboardPage() {
     }
   };
 
+  const openChangePassword = () => {
+    setIsProfileMenuOpen(false);
+    setIsSecurityOpen(true);
+  };
+
+  const handleLogout = () => {
+    setIsProfileMenuOpen(false);
+    void logout();
+  };
+
   return (
     <div className="dashboard-container">
-      <div className="auth-bg-glow auth-bg-glow-1"/>
-      <div className="auth-bg-glow auth-bg-glow-2"/>
-      
+      <div className="auth-bg-glow auth-bg-glow-1" />
+      <div className="auth-bg-glow auth-bg-glow-2" />
+
       <header className="dashboard-header">
         <div className="dashboard-brand">
           <Logo />
@@ -177,23 +221,43 @@ export function DashboardPage() {
             </button>
           </nav>
           <div className="nav-divider"></div>
-          <div className="user-block">
-            <div className="user-info">
-              <span className="user-name">{user?.full_name || user?.email}</span>
-              <span className="user-email">{user?.email}</span>
-            </div>
-            <div className="user-avatar">
-              <User size={16} />
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={logout}
-              className="logout-btn"
-              title="Вийти"
+
+          <div className="user-block" ref={profileMenuRef}>
+            <button
+              type="button"
+              className={`profile-trigger ${isProfileMenuOpen ? "active" : ""}`}
+              onClick={() => setIsProfileMenuOpen((value) => !value)}
+              aria-haspopup="menu"
+              aria-expanded={isProfileMenuOpen}
+              aria-label="Відкрити меню профілю"
             >
-              <LogOut size={18} />
-            </Button>
+              <div className="user-info">
+                <span className="user-name">{user?.full_name || user?.email}</span>
+                <span className="user-email">{user?.email}</span>
+              </div>
+              <div className="user-avatar">
+                <User size={16} />
+              </div>
+              <ChevronDown size={16} className={`profile-chevron ${isProfileMenuOpen ? "open" : ""}`} />
+            </button>
+
+            {isProfileMenuOpen ? (
+              <div className="profile-menu" role="menu" aria-label="Меню профілю">
+                <button type="button" className="profile-menu-item" onClick={openChangePassword} role="menuitem">
+                  <LockKeyhole size={16} />
+                  Змінити пароль
+                </button>
+                <button
+                  type="button"
+                  className="profile-menu-item profile-menu-item-danger"
+                  onClick={handleLogout}
+                  role="menuitem"
+                >
+                  <LogOut size={16} />
+                  Вийти
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
       </header>
@@ -249,6 +313,8 @@ export function DashboardPage() {
         onRefresh={() => void loadHistory()}
         onSelect={(analysisId) => void handleHistorySelect(analysisId)}
       />
+
+      <ChangePasswordModal isOpen={isSecurityOpen} onClose={() => setIsSecurityOpen(false)} />
 
       {isAnalyzing && <AnalysisLoader />}
     </div>

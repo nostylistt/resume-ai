@@ -31,7 +31,7 @@ async function exportPdf(req, res) {
     const analysis = await getResumeAnalysisSnapshot(req.user.id, analysisId);
 
     if (!analysis) {
-      return res.status(404).json({ message: 'Analysis not found.' });
+      return res.status(404).json({ message: 'Аналіз не знайдено' });
     }
 
     const summary = buildPdfSummaryFromAnalysisRecord(analysis);
@@ -45,11 +45,11 @@ async function exportPdf(req, res) {
     return res.send(pdfBuffer);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ message: 'Invalid PDF export payload.' });
+      return res.status(400).json({ message: 'Невірний запит на експорт PDF' });
     }
 
     console.error('[PDF Export] Failed to generate PDF:', error);
-    return res.status(500).json({ message: 'Failed to export PDF.' });
+    return res.status(500).json({ message: 'Не вдалося експортувати PDF' });
   }
 }
 
