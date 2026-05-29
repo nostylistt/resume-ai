@@ -197,8 +197,8 @@ function calculateResumeQualityScore(structureScore, textScore) {
 
 function calculateOverallScore(resumeQualityScore, skillsComparison) {
   const weights = {
-    resumeQuality: 0.55,
-    marketFit: 0.45,
+    resumeQuality: 0.50,
+    marketFit: 0.50,
   };
 
   const marketFitScore = skillsComparison ? skillsComparison.stats.marketFitScore : null;
