@@ -64,8 +64,6 @@ async function createPasswordResetRequest(email) {
     client.release();
   }
 
-  // Use the app root plus a query param so the email link still opens on static hosts
-  // that do not rewrite arbitrary SPA routes like /reset-password to index.html.
   const resetUrl = `${getAppBaseUrl().replace(/\/+$/, '')}/?resetToken=${encodeURIComponent(rawToken)}`;
 
   await sendPasswordResetEmail({
